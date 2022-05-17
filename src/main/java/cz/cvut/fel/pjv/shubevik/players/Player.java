@@ -6,7 +6,19 @@ import cz.cvut.fel.pjv.shubevik.moves.Move;
 
 public abstract class Player {
 
-    private Color pieceColor;
+    private final Color pieceColor;
+    private final String name;
 
-    public  abstract Move chooseMove(Board board);
+    public Player(String name, Color color) {
+        this.name = name;
+        pieceColor = color;
+    }
+
+    public Color getColor() {
+        return pieceColor;
+    }
+
+    public String getName() {
+        return name;
+    }
 }
