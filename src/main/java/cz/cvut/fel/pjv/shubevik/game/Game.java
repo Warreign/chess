@@ -5,27 +5,37 @@ import cz.cvut.fel.pjv.shubevik.board.Tile;
 import cz.cvut.fel.pjv.shubevik.moves.Move;
 import cz.cvut.fel.pjv.shubevik.moves.MoveType;
 import cz.cvut.fel.pjv.shubevik.pieces.*;
+import cz.cvut.fel.pjv.shubevik.players.HumanPlayer;
 import cz.cvut.fel.pjv.shubevik.players.Player;
+import cz.cvut.fel.pjv.shubevik.players.RandomPlayer;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableBooleanValue;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.logging.*;
 
 public class Game {
 
+    static Logger logger = Logger.getLogger(Game.class.getName());
+
     private Board board;
-    Map<Color, Player> players;
+    Map<PColor, Player> players;
     private Player currentPlayer;
     private Optional<Result> result;
     private ObservableList<Piece> takenPieces;
     private ObservableMap<Move, MoveType> previousMoves;
+
     private int fullMoves;
     private int halfMoves;
-    private ObservableBooleanValue gameOver;
+    private BooleanProperty gameOver;
+    private ObjectProperty<MoveType> specialMove;
 
     public Game(Player p1, Player p2) {
         takenPieces = FXCollections.observableList(new ArrayList<>());
@@ -36,22 +46,26 @@ public class Game {
         players.put(p2.getColor(), p2);
 
         result = Optional.empty();
-
-        currentPlayer = players.get(Color.WHITE);
+        board = new Board();
+        currentPlayer = players.get(PColor.WHITE);
+        currentPlayer.startTimer();
 
         fullMoves = 0;
         halfMoves = 0;
 
         gameOver = new SimpleBooleanProperty(false);
+        specialMove = new SimpleObjectProperty<>();
     }
 
     public boolean takeMove(Move move) {
         if (isMoveValid(move)) {
+            logger.log(Level.INFO, "Valid move");
             makeMove(move);
             board.setLastMove(move);
-
+            switchPlayers();
             return true;
         }
+        logger.log(Level.INFO, "Invalid move");
         return false;
     }
 
@@ -59,29 +73,33 @@ public class Game {
         movePieces(move);
         // Castling
         if (move.getPiece() instanceof King && move.getPiece().yDiff(move) == 2) {
+            System.out.println("Move is castling");
             doCastling(move);
             previousMoves.put(move, MoveType.CASTLING);
+            specialMove.set(MoveType.CASTLING);
         }
         // En Passant
         else if (move.getPiece() instanceof Pawn && ((Pawn) move.getPiece()).isEnPassant(board,move)) {
             doEnPassant(move);
             previousMoves.put(move, MoveType.EN_PASSANT);
+            specialMove.set(MoveType.EN_PASSANT);
         }
         // Promote
-        else if (move.getPiece() instanceof Pawn && ((move.getColor() == Color.WHITE && move.getEnd().x == 7) || (move.getColor() == Color.BLACK && move.getEnd().x == 0))) {
+        else if (move.getPiece() instanceof Pawn && ((move.getColor() == PColor.WHITE && move.getEnd().x == 7) || (move.getColor() == PColor.BLACK && move.getEnd().x == 0))) {
             previousMoves.put(move,MoveType.PROMOTION);
+            specialMove.set(MoveType.PROMOTION);
         }
         else {
             previousMoves.put(move, MoveType.NORMAL);
+            specialMove.set(MoveType.NORMAL);
         }
-        currentPlayer = currentPlayer.getColor() == Color.WHITE ? players.get(Color.BLACK) : players.get(Color.WHITE);
     }
-    public List<Tile> findPotentialMoves(Color color) {
+    public List<Tile> findPotentialMoves(PColor color) {
         List<Tile> potentialMoves = new ArrayList<>();
         for (int x = 0; x < 8; ++x) {
             for (int y = 0; y < 8; ++y) {
                 Tile t =  board.getTile(x, y);
-                if (!t.isOccupied() || t.getPieceColor() == (color == Color.WHITE ? Color.BLACK : Color.WHITE)) {
+                if (!t.isOccupied() || t.getPieceColor() == (color == PColor.WHITE ? PColor.BLACK : PColor.WHITE)) {
                     potentialMoves.add(t);
                 }
             }
@@ -97,7 +115,7 @@ public class Game {
                     tile.isOccupied() &&
                     tile.getPiece().isValid(this, m) &&
                     pathClear(m) &&
-                    checkAfterMove(m)
+                    !checkAfterMove(m)
             ) {
                 possibleMoves.add(m.copyMove());
             }
@@ -106,7 +124,7 @@ public class Game {
     }
 
     public boolean canMoveOpponent() {
-        Color opponent = currentPlayer.getColor() == Color.WHITE ? Color.BLACK : Color.WHITE;
+        PColor opponent = currentPlayer.getColor() == PColor.WHITE ? PColor.BLACK : PColor.WHITE;
         for (Tile t : findPiecesColor(opponent)) {
             if (!findMovesPiece(t).isEmpty()) {
                 return true;
@@ -138,14 +156,14 @@ public class Game {
 
     public boolean tileUnderAttack(Tile tile) {
         Move m = new Move(null, tile);
-        Color attacker = tile.getPieceColor() == Color.WHITE ? Color.BLACK : Color.WHITE;
+        PColor attacker = tile.getPieceColor() == PColor.WHITE ? PColor.BLACK : PColor.WHITE;
         for (Tile s : findPiecesColor(attacker)) {
             m.setStart(s);
             if (m.getPiece().isValid(this, m) && pathClear(m)) {
-                return false;
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
     public boolean checkAfterMove(Move move) {
@@ -160,11 +178,11 @@ public class Game {
     }
 
     public boolean checkOpponent() {
-        return tileUnderAttack(findKings().get(currentPlayer.getColor() == Color.WHITE ? Color.BLACK : Color.WHITE));
+        return tileUnderAttack(findKings().get(currentPlayer.getColor() == PColor.WHITE ? PColor.BLACK : PColor.WHITE));
     }
 
-    public Map<Color, Tile> findKings() {
-        Map<Color, Tile> kings = new HashMap<>();
+    public Map<PColor, Tile> findKings() {
+        Map<PColor, Tile> kings = new HashMap<>();
         for (int x = 0; x < 8; ++x) {
             for (int y = 0; y < 8; ++y) {
                 Tile t = board.getTile(x, y);
@@ -176,7 +194,7 @@ public class Game {
         return kings;
     }
 
-    public List<Tile> findPiecesColor(Color color) {
+    public List<Tile> findPiecesColor(PColor color) {
         List<Tile> pieces = new ArrayList<>();
         for (int x = 0; x < 8; ++x) {
             for (int y = 0; y < 8; ++y) {
@@ -188,17 +206,22 @@ public class Game {
     }
 
     public boolean isMoveValid(Move move) {
+        System.out.println("move " + move.checkMove());
+        System.out.println("player " + (currentPlayer == players.get(move.getColor())));
+        System.out.println("piece " + move.getPiece().isValid(this, move));
+        System.out.println("check " + checkAfterMove(move));
         return move.checkMove() &&
                 currentPlayer == players.get(move.getColor()) &&
                 move.getPiece().isValid(this, move) &&
                 pathClear(move) &&
-                checkAfterMove(move);
+                !checkAfterMove(move);
     }
 
     // Do special moves
     public void doCastling(Move move) {
+        System.out.println("Doing castling");
         Move m;
-        if (move.getColor() == Color.WHITE) {
+        if (move.getColor() == PColor.WHITE) {
             m = move.getPiece().isRight(move) ?
                     new Move(getTile(0,7), getTile(0,5)) :
                     new Move(getTile(0,0), getTile(0,3));
@@ -214,7 +237,7 @@ public class Game {
     }
 
     public void doEnPassant(Move move) {
-        if (move.getColor() == Color.WHITE) {
+        if (move.getColor() == PColor.WHITE) {
             Tile enemyTile = getTile(move.getEnd().x-1, move.getEnd().y);
             takenPieces.add(enemyTile.getPiece());
             enemyTile.setPiece(null);
@@ -225,11 +248,12 @@ public class Game {
         move.getEnd().setPiece(piece);
     }
 
+
     // Evaluate game
 
     public boolean isCheckmate() {
         boolean opponentCheckmate = !canMoveOpponent() && checkOpponent();
-        if (opponentCheckmate) result = Optional.of(currentPlayer.getColor() == Color.WHITE ? Result.WHITE_WIN : Result.BLACK_WIN);
+        if (opponentCheckmate) result = Optional.of(currentPlayer.getColor() == PColor.WHITE ? Result.WHITE_WIN : Result.BLACK_WIN);
         return opponentCheckmate;
     }
 
@@ -240,7 +264,7 @@ public class Game {
     }
 
     public boolean isInsufficientMaterial() {
-        List<Tile> pieceTiles = findPiecesColor(currentPlayer.getColor() == Color.WHITE ? Color.BLACK : Color.WHITE);
+        List<Tile> pieceTiles = findPiecesColor(currentPlayer.getColor() == PColor.WHITE ? PColor.BLACK : PColor.WHITE);
         List<Piece> pieces = new ArrayList<>();
         for (Tile t : pieceTiles) {
             pieces.add(t.getPiece());
@@ -261,7 +285,7 @@ public class Game {
         return false;
     }
 
-    public boolean gameTermination() {
+    public boolean evaluateGame() {
         return isCheckmate() || isStalemate() || isInsufficientMaterial() || isFiftyMoves() || isThreeFoldRep();
     }
 
@@ -282,7 +306,13 @@ public class Game {
         else {
             halfMoves++;
         }
-        if (move.getColor() == Color.BLACK) fullMoves++;
+        if (move.getColor() == PColor.BLACK) fullMoves++;
+    }
+
+    public void switchPlayers() {
+        currentPlayer.stopTimer();
+        currentPlayer = players.values().stream().filter(player -> player != currentPlayer).collect(Collectors.toList()).get(0);
+        currentPlayer.startTimer();
     }
 
     public Board getBoard() {
@@ -291,6 +321,22 @@ public class Game {
 
     public Tile getTile(int x, int y) {
         return board.getTile(x, y);
+    }
+
+    public Map<PColor, Player> getPlayers() {
+        return players;
+    }
+
+    public Player getCurrent() {
+        return currentPlayer;
+    }
+
+    public ObservableMap<Move, MoveType> getLastMoves() {
+        return previousMoves;
+    }
+
+    public ObjectProperty<MoveType> getSpecialMove() {
+        return specialMove;
     }
 }
 

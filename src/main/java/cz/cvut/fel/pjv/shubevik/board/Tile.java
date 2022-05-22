@@ -1,6 +1,6 @@
 package cz.cvut.fel.pjv.shubevik.board;
 
-import cz.cvut.fel.pjv.shubevik.game.Color;
+import cz.cvut.fel.pjv.shubevik.game.PColor;
 import cz.cvut.fel.pjv.shubevik.pieces.Piece;
 
 public class Tile {
@@ -24,7 +24,7 @@ public class Tile {
     public boolean isOccupied() {
         return piece != null;
     }
-    public Color getPieceColor() {
+    public PColor getPieceColor() {
         return isOccupied() ? piece.getColor() : null;
     }
 }

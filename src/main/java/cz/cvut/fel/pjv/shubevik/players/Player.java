@@ -1,24 +1,37 @@
 package cz.cvut.fel.pjv.shubevik.players;
 
-import cz.cvut.fel.pjv.shubevik.board.Board;
-import cz.cvut.fel.pjv.shubevik.game.Color;
-import cz.cvut.fel.pjv.shubevik.moves.Move;
+import cz.cvut.fel.pjv.shubevik.GUI.Timer;
+import cz.cvut.fel.pjv.shubevik.game.PColor;
 
 public abstract class Player {
 
-    private final Color pieceColor;
+    private final PColor pieceColor;
     private final String name;
+    private final Timer timer;
 
-    public Player(String name, Color color) {
+    public Player(String name, PColor color, Timer timer) {
         this.name = name;
         pieceColor = color;
+        this.timer = timer;
     }
 
-    public Color getColor() {
+    public PColor getColor() {
         return pieceColor;
     }
 
     public String getName() {
         return name;
+    }
+
+    public Timer getTimer() {
+        return timer;
+    }
+
+    public void startTimer() {
+        timer.start();
+    }
+
+    public void stopTimer() {
+        timer.stop();
     }
 }

@@ -1,7 +1,7 @@
 package cz.cvut.fel.pjv.shubevik.moves;
 
 import cz.cvut.fel.pjv.shubevik.board.Tile;
-import cz.cvut.fel.pjv.shubevik.game.Color;
+import cz.cvut.fel.pjv.shubevik.game.PColor;
 import cz.cvut.fel.pjv.shubevik.pieces.Piece;
 
 public class Move {
@@ -36,7 +36,7 @@ public class Move {
         this.end = end;
     }
 
-    public Color getColor() {
+    public PColor getColor() {
         return piece != null ? piece.getColor() : null;
     }
 

@@ -1,13 +1,13 @@
 package cz.cvut.fel.pjv.shubevik.pieces;
 
 import cz.cvut.fel.pjv.shubevik.board.Board;
-import cz.cvut.fel.pjv.shubevik.game.Color;
+import cz.cvut.fel.pjv.shubevik.game.PColor;
 import cz.cvut.fel.pjv.shubevik.game.Game;
 import cz.cvut.fel.pjv.shubevik.moves.Move;
 
 public class Pawn extends Piece {
 
-    public Pawn(Color color) { super(color); }
+    public Pawn(PColor color) { super(color); }
 
     public boolean isValid(Game game, Move move) {
         return (!move.getEnd().isOccupied() || move.getEnd().getPieceColor() != getColor()) &&
@@ -15,7 +15,7 @@ public class Pawn extends Piece {
     }
 
     public boolean isNormalMove(Move move) {
-        if (move.getColor() == Color.WHITE) {
+        if (move.getColor() == PColor.WHITE) {
             return isUp(move) && !move.endOccupied() && xDiff(move) == 1 && yDiff(move) == 0;
         }
         else {
@@ -24,7 +24,7 @@ public class Pawn extends Piece {
     }
 
     public boolean isLongMove(Board board, Move move) {
-        if (move.getColor() == Color.WHITE) {
+        if (move.getColor() == PColor.WHITE) {
             return isUp(move) && !move.endOccupied() && xDiff(move) == 2 && yDiff(move) == 0 && !wasMoved() &&
                     !board.getTile(move.getStart().x+1, move.getStart().y).isOccupied();
         }
@@ -36,7 +36,7 @@ public class Pawn extends Piece {
 
     public boolean isEnPassant(Board board, Move move) {
         Move lm = board.getLastMove();
-        if (getColor() == Color.WHITE) {
+        if (getColor() == PColor.WHITE) {
             return lm != null &&
                     move.getEnd().x == move.getStart().x + 1 &&
                     lm.getPiece() instanceof Pawn &&
@@ -55,7 +55,7 @@ public class Pawn extends Piece {
     }
 
     public boolean isCapture(Move move) {
-        if (getColor() == Color.WHITE) {
+        if (getColor() == PColor.WHITE) {
             return xDiff(move) == 1 && yDiff(move) == 1 &&
                     isUp(move) &&
                     move.getEnd().isOccupied();

@@ -3,14 +3,14 @@ package cz.cvut.fel.pjv.shubevik.board;
 import java.util.ArrayList;
 import java.util.List;
 
-import cz.cvut.fel.pjv.shubevik.game.Color;
+import cz.cvut.fel.pjv.shubevik.game.PColor;
 import cz.cvut.fel.pjv.shubevik.pieces.Piece;
 
 public class PieceSet {
     private List<Piece> pieces;
-    private Color color;
+    private PColor color;
 
-    public PieceSet(Color color) {
+    public PieceSet(PColor color) {
         this.color = color;
         this.pieces = new ArrayList<>();
     }

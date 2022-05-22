@@ -1,20 +1,19 @@
 package cz.cvut.fel.pjv.shubevik.pieces;
 
-import cz.cvut.fel.pjv.shubevik.board.Board;
-import cz.cvut.fel.pjv.shubevik.game.Color;
+import cz.cvut.fel.pjv.shubevik.game.PColor;
 import cz.cvut.fel.pjv.shubevik.game.Game;
 import cz.cvut.fel.pjv.shubevik.moves.Move;
 
 public abstract class Piece {
 
     private boolean moved;
-    private final Color color;
+    private final PColor color;
     private boolean captured;
-    public Piece(Color color) {
+    public Piece(PColor color) {
         this.color = color;
     }
 
-    public Color getColor() {
+    public PColor getColor() {
         return this.color;
     }
 
@@ -49,11 +48,11 @@ public abstract class Piece {
     }
 
     public boolean isLeft(Move move) {
-        return move.getEnd().y - move.getStart().y > 0;
+        return move.getEnd().y - move.getStart().y < 0;
     }
 
     public boolean isRight(Move move) {
-        return move.getEnd().x - move.getStart().x < 0;
+        return move.getEnd().y - move.getStart().y > 0;
     }
 
     public boolean isUp(Move move) {
