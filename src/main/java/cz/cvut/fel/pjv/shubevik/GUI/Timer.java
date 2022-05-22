@@ -7,13 +7,8 @@ import javafx.concurrent.Task;
 public class Timer {
     private long currentStartTime;
     private int time;
-//    private IntegerProperty remainingTime;
-//    private BooleanProperty timeOut;
     private long offset;
     private boolean running;
-//    private Task<Void> listenerTask;
-
-    Thread listener;
 
     public Timer(int seconds) {
         currentStartTime = 0;
@@ -23,7 +18,6 @@ public class Timer {
     }
 
     public void start() {
-        System.out.println("Timer start");
         if (!running) {
             currentStartTime = System.currentTimeMillis() - offset;
             service.restart();
@@ -32,7 +26,6 @@ public class Timer {
     }
 
     public void stop() {
-        System.out.println("Timer stop");
         if (running) {
             offset = System.currentTimeMillis() - currentStartTime;
         }

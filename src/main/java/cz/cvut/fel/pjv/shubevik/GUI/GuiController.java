@@ -56,8 +56,8 @@ public class GuiController extends Application {
         stage.setMinHeight(600);
 
         openMenu();
-        startGame("James", "Connor", PColor.WHITE, PColor.BLACK, false, false, 1200);
         stage.show();
+//        startGame("James", "Connor", PColor.WHITE, PColor.BLACK, false, false, 1200, true);
     }
 
     public static void main(String[] args) {
@@ -97,13 +97,12 @@ public class GuiController extends Application {
         }
     }
 
-    public void startGame(String name1, String name2, PColor color1, PColor color2, boolean ai1, boolean ai2, int time) {
-//        System.out.printf("Starting game with: \n%s as %s\n%s as %s\nwith time %d\n", player1, colorP1.toString(), player2, colorP2.toString(), time);
+    public void startGame(String name1, String name2, PColor color1, PColor color2, boolean ai1, boolean ai2, int time, boolean freeEdit) {
         Player p1 = ai1 ? new RandomPlayer(name1, color1, new Timer(time)) :
                             new HumanPlayer(name1, color1, new Timer(time));
         Player p2 = ai2 ? new RandomPlayer(name2, color2, new Timer(time)) :
                             new HumanPlayer(name2, color2, new Timer(time));
-        game = new Game(p1, p2);
-        main.setScene(new GameScene(this, main.getWidth(), main.getHeight(), game));
+        game = new Game(p1, p2, time != 0);
+        main.setScene(new GameScene(this, main.getWidth(), main.getHeight(), game, freeEdit));
     }
 }

@@ -13,9 +13,9 @@ public class Board {
 
     public static Piece genPiece(int x, int y) {
         if (y == 4 && x == 0) return new King(PColor.WHITE);
-//        if (y == 3 && x == 0) return new Queen(PColor.WHITE);
-//        if ((y == 2 || y == 5) && x == 0) return new Bishop(PColor.WHITE);
-//        if ((y == 1 || y == 6) && x == 0) return new Knight(PColor.WHITE);
+        if (y == 3 && x == 0) return new Queen(PColor.WHITE);
+        if ((y == 2 || y == 5) && x == 0) return new Bishop(PColor.WHITE);
+        if ((y == 1 || y == 6) && x == 0) return new Knight(PColor.WHITE);
         if ((y == 0 || y == 7) && x == 0) return new Rook(PColor.WHITE);
         if (x == 1) return new Pawn(PColor.WHITE);
 
@@ -25,6 +25,11 @@ public class Board {
         if ((y == 1 || y == 6) && x == 7) return new Knight(PColor.BLACK);
         if ((y == 0 || y == 7) && x == 7) return new Rook(PColor.BLACK);
         if (x == 6) return new Pawn(PColor.BLACK);
+
+//        if (x == 7 && y == 0) return new King(PColor.BLACK);
+//        if (x == 5 && y == 0) return new King(PColor.WHITE);
+//        if (x == 6 && y == 7) return new Queen(PColor.WHITE);
+
 
         return null;
     }

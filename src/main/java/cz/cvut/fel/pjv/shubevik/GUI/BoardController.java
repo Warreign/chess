@@ -11,8 +11,6 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.event.EventHandler;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.input.*;
 import javafx.scene.layout.*;
 
@@ -32,13 +30,16 @@ public class BoardController {
     private ObjectProperty<Move> moveProperty;
     private BooleanProperty moveValid;
 
-    public BoardController(GuiController controller, Game game, GridPane board, TileView[][] tiles, Map<TileView, Tile> tileMap) {
+    private boolean freeEdit;
+
+    public BoardController(GuiController controller, Game game, GridPane board, TileView[][] tiles, Map<TileView, Tile> tileMap, boolean freeEdit) {
         this.controller = controller;
         this.game = game;
         this.board = board;
         this.root = (Pane) board.getParent();
         this.tiles = tiles;
         this.tileMap = tileMap;
+        this.freeEdit = freeEdit;
 
         moveProperty = new SimpleObjectProperty<Move>();
         moveValid = new SimpleBooleanProperty();
@@ -63,7 +64,7 @@ public class BoardController {
     private EventHandler<MouseEvent> onDragDetected = e -> {
         TileView source = (TileView) e.getSource();
 
-        if (source.isPresent() && game.getCurrent().getColor() ==  tileMap.get(source).getPieceColor()) {
+        if (freeEdit || (source.isPresent() && game.getCurrent().getColor() ==  tileMap.get(source).getPieceColor())) {
             Dragboard db = source.startDragAndDrop(TransferMode.ANY);
             ClipboardContent content = new ClipboardContent();
             content.putImage(source.getPiece());
@@ -107,7 +108,6 @@ public class BoardController {
     private Move constructMove(DragEvent e) {
         Tile start = tileMap.get((TileView) e.getGestureSource());
         Tile end = tileMap.get((TileView) e.getGestureTarget());
-//        System.out.printf("Move: %d, %d -> %d, %d\n",start.x,start.y,end.x, end.y);
         return new Move(start, end);
     }
 
@@ -125,10 +125,10 @@ public class BoardController {
     public void removeListeners() {
         for (int x = 0; x < 8; ++x) {
             for (int y = 0; y < 8; ++y) {
-                tiles[x][y].removeEventHandler(MouseEvent.DRAG_DETECTED, onDragDetected);
-                tiles[x][y].setOnDragOver(onDragOver);
-                tiles[x][y].setOnDragDropped(onDragDropped);
-                tiles[x][y].setOnDragDone(onDragDone);
+                tiles[x][y].setOnDragDetected(null);
+                tiles[x][y].setOnDragOver(null);
+                tiles[x][y].setOnDragDropped(null);
+                tiles[x][y].setOnDragDone(null);
             }
         }
     }

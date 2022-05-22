@@ -2,6 +2,8 @@ package cz.cvut.fel.pjv.shubevik.GUI;
 
 import cz.cvut.fel.pjv.shubevik.game.PColor;
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -23,6 +25,7 @@ import java.util.Arrays;
 public class MenuScene extends Scene {
 
     public static final Image BACKGROUND_IMAGE = new Image(GuiController.class.getResourceAsStream("/cz/cvut/fel/pjv/shubevik/images/menu.jpg"));
+    public static int MAX_NAME_SIZE = 20;
 
     private GuiController controller;
     private BorderPane root;
@@ -44,11 +47,11 @@ public class MenuScene extends Scene {
         super(new BorderPane(), width, height);
         root = (BorderPane) this.getRoot();
         this.controller = controller;
-        initialize();
-        initializeSettingsStage();
+        init();
+        initSettingsStage();
     }
 
-    private void initialize() {
+    private void init() {
         // Set title
         Label title  = new Label("Chess");
         title.setFont(Font.font("Impact", FontPosture.REGULAR, 100));
@@ -96,31 +99,63 @@ public class MenuScene extends Scene {
         buttons.getChildren().addAll(playButton,editButton,quitButton);
     }
 
-    private EventHandler<ActionEvent> playHandler = new EventHandler<>() {
-        @Override
-        public void handle(ActionEvent actionEvent) {
-            int time = 0;
-            if (colorP1.getValue() == null || colorP2.getValue() == null || colorP1.getValue() == colorP2.getValue()) {
-                colorP1.requestFocus();
-                return;
-            }
-            if (nameP1.getText().isEmpty() || nameP2.getText().isEmpty()) {
-                nameP1.requestFocus();
-                return;
-            }
-            if (timed.isSelected()) {
-                try {
-                    time = Integer.parseInt(timeHours.getText()) * 3600 + Integer.parseInt(timeMinutes.getText()) * 60;
-                } catch (NumberFormatException e) {
-                    return;
-                }
-            }
-            controller.startGame(nameP1.getText(), nameP2.getText(), colorP1.getValue(), colorP2.getValue(), aiP1.isSelected(), aiP2.isSelected(), time);
-            settingsStage.close();
-        }
+    private EventHandler<ActionEvent> playHandler = e -> {
+        if (checkParameters() == false) return;
+        int time = timed.isSelected() ?
+                Integer.parseUnsignedInt(timeHours.getText()) * 3600 + Integer.parseUnsignedInt(timeMinutes.getText()) * 60 :
+                0;
+        controller.startGame(nameP1.getText(),
+                nameP2.getText(),
+                colorP1.getValue(),
+                colorP2.getValue(),
+                aiP1.isSelected(),
+                aiP2.isSelected(),
+                time,
+                false);
+        settingsStage.close();
     };
 
-    private void initializeSettingsStage() {
+    private EventHandler<ActionEvent> editHandler = e -> {
+        if (checkParameters() == false) return;
+        int time = timed.isSelected() ?
+                Integer.parseUnsignedInt(timeHours.getText()) * 3600 + Integer.parseUnsignedInt(timeMinutes.getText()) * 60 :
+                0;
+        controller.startGame(nameP1.getText(),
+                nameP2.getText(),
+                colorP1.getValue(),
+                colorP2.getValue(),
+                aiP1.isSelected(),
+                aiP2.isSelected(),
+                time,
+                true);
+        settingsStage.close();
+    };
+
+    private boolean checkParameters() {
+        if (colorP1.getValue() == null || colorP2.getValue() == null || colorP1.getValue() == colorP2.getValue()) {
+            colorP1.requestFocus();
+            return false;
+        }
+        if (nameP1.getText().isEmpty() || nameP2.getText().isEmpty()) {
+            nameP1.requestFocus();
+            return false;
+        }
+        if (timed.isSelected()) {
+            try {
+                Integer.parseUnsignedInt(timeHours.getText());
+                Integer.parseUnsignedInt(timeMinutes.getText());
+//                if (
+//                                < 0 || ) {
+//                    return false;
+//                }
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void initSettingsStage() {
         VBox settings = new VBox();
         settingsStage = new Stage();
         settingsStage.setScene(new Scene(settings, 300, 180));
@@ -131,26 +166,38 @@ public class MenuScene extends Scene {
         settings.setSpacing(10);
         settings.setAlignment(Pos.CENTER);
         settings.setPadding(new Insets(10, 20, 15, 20));
+        settings.setPrefWidth(settingsStage.getWidth());
 
         // Settings
-            // Player 1
+            // Players
         aiP1 = new CheckBox("AI");
-        nameP1 = new TextField();
-        nameP1.setPromptText("Player 1");
-        nameP1.setMaxWidth(getWidth() * 0.5);
-        colorP1 = new ComboBox<>(FXCollections.observableList(Arrays.asList(PColor.WHITE, PColor.BLACK)));
-        colorP1.setPromptText("Color");
-        HBox p1 = new HBox(10, aiP1, nameP1, colorP1);
-        p1.setAlignment(Pos.CENTER);
-
-            // Player 2
         aiP2 = new CheckBox("AI");
+        nameP1 = new TextField();
         nameP2 = new TextField();
+        nameP1.setPromptText("Player 1");
         nameP2.setPromptText("Player 2");
-        nameP2.setMaxWidth(getWidth() * 0.5);
+        nameP1.prefWidthProperty().bind(settingsStage.widthProperty().multiply(0.4));
+        nameP2.prefWidthProperty().bind(settingsStage.widthProperty().multiply(0.4));
+        nameP1.lengthProperty().addListener((observableValue, number, t1) -> {
+            if (t1.intValue()>number.intValue() && nameP1.getLength() >= MAX_NAME_SIZE) {
+                nameP1.setText(nameP1.getText().substring(0,MAX_NAME_SIZE));
+            }
+        });
+        nameP2.lengthProperty().addListener((observableValue, number, t1) -> {
+            if (t1.intValue()>number.intValue() && nameP2.getLength() >= MAX_NAME_SIZE) {
+                nameP2.setText(nameP2.getText().substring(0,MAX_NAME_SIZE));
+            }
+        });
+        colorP1 = new ComboBox<>(FXCollections.observableList(Arrays.asList(PColor.WHITE, PColor.BLACK)));
         colorP2 = new ComboBox<>(FXCollections.observableList(Arrays.asList(PColor.WHITE, PColor.BLACK)));
+        colorP1.prefWidthProperty().bind(settingsStage.widthProperty().multiply(0.25));
+        colorP2.prefWidthProperty().bind(settingsStage.widthProperty().multiply(0.25));
+        colorP1.setPromptText("Color");
         colorP2.setPromptText("Color");
+
+        HBox p1 = new HBox(10, aiP1, nameP1, colorP1);
         HBox p2 = new HBox(10, aiP2, nameP2, colorP2);
+        p1.setAlignment(Pos.CENTER);
         p2.setAlignment(Pos.CENTER);
 
             // Time option
@@ -183,13 +230,17 @@ public class MenuScene extends Scene {
         Button playButton = new Button("Play");
         playButton.setOnAction(playHandler);
 
+        Button editButton = new Button("Edit board");
+        editButton.setOnAction(editHandler);
+
         Button cancelButton = new Button("Cancel");
         cancelButton.setOnAction(e -> settingsStage.close());
         cancelButton.setCancelButton(true);
 
-        BorderPane actionButtons = new BorderPane();
-        actionButtons.setLeft(cancelButton);
-        actionButtons.setRight(playButton);
+        HBox actionButtons = new HBox(30);
+        actionButtons.setPrefWidth(settingsStage.getWidth());
+        actionButtons.setAlignment(Pos.CENTER);
+        actionButtons.getChildren().addAll(cancelButton, editButton, playButton);
 
             // Title
         Label title = new Label("Game settings");

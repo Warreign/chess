@@ -5,19 +5,17 @@ import cz.cvut.fel.pjv.shubevik.board.Tile;
 import cz.cvut.fel.pjv.shubevik.moves.Move;
 import cz.cvut.fel.pjv.shubevik.moves.MoveType;
 import cz.cvut.fel.pjv.shubevik.pieces.*;
-import cz.cvut.fel.pjv.shubevik.players.HumanPlayer;
 import cz.cvut.fel.pjv.shubevik.players.Player;
 import cz.cvut.fel.pjv.shubevik.players.RandomPlayer;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.value.ObservableBooleanValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.collections.ObservableMap;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.logging.*;
 
@@ -26,29 +24,31 @@ public class Game {
     static Logger logger = Logger.getLogger(Game.class.getName());
 
     private Board board;
-    Map<PColor, Player> players;
+    private Map<PColor, Player> players;
     private Player currentPlayer;
-    private Optional<Result> result;
+    private Result result;
+    private final boolean clock;
     private ObservableList<Piece> takenPieces;
-    private ObservableMap<Move, MoveType> previousMoves;
+    private ObservableList<Move> previousMoves;
 
     private int fullMoves;
     private int halfMoves;
     private BooleanProperty gameOver;
     private ObjectProperty<MoveType> specialMove;
 
-    public Game(Player p1, Player p2) {
+    public Game(Player p1, Player p2, boolean clock) {
         takenPieces = FXCollections.observableList(new ArrayList<>());
-        previousMoves = FXCollections.observableMap(new LinkedHashMap<>());
+        previousMoves = FXCollections.observableList(new ArrayList<>());
 
         players = new HashMap<>();
         players.put(p1.getColor(), p1);
         players.put(p2.getColor(), p2);
 
-        result = Optional.empty();
+        result = Result.IN_PROCESS;
         board = new Board();
+        this.clock = clock;
         currentPlayer = players.get(PColor.WHITE);
-        currentPlayer.startTimer();
+        if (clock) currentPlayer.startTimer();
 
         fullMoves = 0;
         halfMoves = 0;
@@ -62,6 +62,7 @@ public class Game {
             logger.log(Level.INFO, "Valid move");
             makeMove(move);
             board.setLastMove(move);
+            isOver();
             switchPlayers();
             return true;
         }
@@ -70,27 +71,25 @@ public class Game {
     }
 
     public void makeMove(Move move) {
+        if (move.endOccupied()) takenPieces.add(move.getEnd().getPiece());
+        move.getStart().getPiece().setWasMoved(true);
         movePieces(move);
         // Castling
+        previousMoves.add(move);
         if (move.getPiece() instanceof King && move.getPiece().yDiff(move) == 2) {
-            System.out.println("Move is castling");
             doCastling(move);
-            previousMoves.put(move, MoveType.CASTLING);
             specialMove.set(MoveType.CASTLING);
         }
         // En Passant
         else if (move.getPiece() instanceof Pawn && ((Pawn) move.getPiece()).isEnPassant(board,move)) {
             doEnPassant(move);
-            previousMoves.put(move, MoveType.EN_PASSANT);
             specialMove.set(MoveType.EN_PASSANT);
         }
         // Promote
         else if (move.getPiece() instanceof Pawn && ((move.getColor() == PColor.WHITE && move.getEnd().x == 7) || (move.getColor() == PColor.BLACK && move.getEnd().x == 0))) {
-            previousMoves.put(move,MoveType.PROMOTION);
             specialMove.set(MoveType.PROMOTION);
         }
         else {
-            previousMoves.put(move, MoveType.NORMAL);
             specialMove.set(MoveType.NORMAL);
         }
     }
@@ -206,10 +205,6 @@ public class Game {
     }
 
     public boolean isMoveValid(Move move) {
-        System.out.println("move " + move.checkMove());
-        System.out.println("player " + (currentPlayer == players.get(move.getColor())));
-        System.out.println("piece " + move.getPiece().isValid(this, move));
-        System.out.println("check " + checkAfterMove(move));
         return move.checkMove() &&
                 currentPlayer == players.get(move.getColor()) &&
                 move.getPiece().isValid(this, move) &&
@@ -244,8 +239,9 @@ public class Game {
         }
     }
 
-    public void doPromotion(Move move, Piece piece) {
-        move.getEnd().setPiece(piece);
+    public void doPromotion(Piece piece) {
+        board.getLastMove().getEnd().setPiece(piece);
+        isOver();
     }
 
 
@@ -253,31 +249,40 @@ public class Game {
 
     public boolean isCheckmate() {
         boolean opponentCheckmate = !canMoveOpponent() && checkOpponent();
-        if (opponentCheckmate) result = Optional.of(currentPlayer.getColor() == PColor.WHITE ? Result.WHITE_WIN : Result.BLACK_WIN);
+        if (opponentCheckmate) result = currentPlayer.getColor() == PColor.WHITE ? Result.WHITE_WIN : Result.BLACK_WIN;
         return opponentCheckmate;
     }
 
     public boolean isStalemate() {
-        boolean stalemate = !canMoveOpponent() && checkOpponent();
-        if (stalemate) result = Optional.of(Result.DRAW);
+        boolean stalemate = !canMoveOpponent() && !checkOpponent();
+        if (stalemate) result = Result.DRAW;
         return stalemate;
     }
 
     public boolean isInsufficientMaterial() {
-        List<Tile> pieceTiles = findPiecesColor(currentPlayer.getColor() == PColor.WHITE ? PColor.BLACK : PColor.WHITE);
-        List<Piece> pieces = new ArrayList<>();
-        for (Tile t : pieceTiles) {
-            pieces.add(t.getPiece());
-        }
-        return pieces.size() == 1 ||
-                (pieces.size() == 2 &&
-                        (pieces.get(0) instanceof Bishop || pieces.get(0) instanceof Knight ||
-                         pieces.get(1) instanceof Bishop || pieces.get(1) instanceof Knight));
+        List<Tile> pieceTiles = findPiecesColor(PColor.WHITE);
+        List<Piece> whitePieces = new ArrayList<>();
+        for (Tile t : pieceTiles) whitePieces.add(t.getPiece());
+        boolean insufficientWhite = whitePieces.size() == 1 ||
+                (whitePieces.size() == 2 &&
+                        (whitePieces.get(0) instanceof Bishop || whitePieces.get(0) instanceof Knight ||
+                                whitePieces.get(1) instanceof Bishop || whitePieces.get(1) instanceof Knight));
+
+        pieceTiles = findPiecesColor(PColor.BLACK);
+        List<Piece> blackPieces = new ArrayList<>();
+        for (Tile t : pieceTiles) blackPieces.add(t.getPiece());
+        boolean insufficientBlack = blackPieces.size() == 1 ||
+                (blackPieces.size() == 2 &&
+                        (blackPieces.get(0) instanceof Bishop || blackPieces.get(0) instanceof Knight ||
+                                blackPieces.get(1) instanceof Bishop || blackPieces.get(1) instanceof Knight));
+
+        if (insufficientWhite && insufficientBlack) result = Result.DRAW;
+        return insufficientWhite && insufficientBlack;
     }
 
     public boolean isFiftyMoves() {
         boolean fiftyMoves = fullMoves >= 50;
-        if (fiftyMoves) result = Optional.of(Result.DRAW);
+        if (fiftyMoves) result = Result.DRAW;
         return fiftyMoves;
     }
 
@@ -285,16 +290,14 @@ public class Game {
         return false;
     }
 
-    public boolean evaluateGame() {
-        return isCheckmate() || isStalemate() || isInsufficientMaterial() || isFiftyMoves() || isThreeFoldRep();
+    public boolean isOver() {
+        boolean ended = isCheckmate() || isStalemate() || isInsufficientMaterial() || isFiftyMoves() || isThreeFoldRep();
+        gameOver.set(ended);
+        return ended;
     }
 
     public void movePieces(Move move) {
-        move.getStart().getPiece().setWasMoved(true);
         move.getStart().setPiece(null);
-        if (move.endOccupied()) {
-            takenPieces.add(move.getEnd().getPiece());
-        }
         move.getEnd().setPiece(move.getPiece());
     }
 
@@ -310,9 +313,35 @@ public class Game {
     }
 
     public void switchPlayers() {
-        currentPlayer.stopTimer();
-        currentPlayer = players.values().stream().filter(player -> player != currentPlayer).collect(Collectors.toList()).get(0);
-        currentPlayer.startTimer();
+        if (!gameOver.get()) {
+            currentPlayer.stopTimer();
+            currentPlayer = players.values().stream().filter(player -> player != currentPlayer).collect(Collectors.toList()).get(0);
+            currentPlayer.startTimer();
+
+            // Move randomly
+            if (currentPlayer instanceof RandomPlayer) {
+                takeMove(randomMove());
+            }
+        }
+    }
+
+    private Move randomMove() {
+        List<Tile> pieces = findPiecesColor(currentPlayer.getColor() == PColor.WHITE ? PColor.BLACK : PColor.WHITE);
+        pieces = pieces.stream().filter(tile -> !findMovesPiece(tile).isEmpty()).collect(Collectors.toList());
+        List<Move> moves = findMovesPiece(pieces.get(ThreadLocalRandom.current().nextInt(pieces.size())));
+        return moves.get(ThreadLocalRandom.current().nextInt(moves.size()));
+    }
+
+    public void stopTimers() {
+        players.get(PColor.WHITE).stopTimer();
+        players.get(PColor.BLACK).stopTimer();
+    }
+
+    public String generatePGN() {
+        if (previousMoves.size() == 0) {
+            return null;
+        }
+        return "1";
     }
 
     public Board getBoard() {
@@ -331,12 +360,28 @@ public class Game {
         return currentPlayer;
     }
 
-    public ObservableMap<Move, MoveType> getLastMoves() {
+    public ObservableList<Move> getLastMoves() {
         return previousMoves;
+    }
+
+    public Move getLastMove() {
+        return previousMoves.get(previousMoves.size()-1);
     }
 
     public ObjectProperty<MoveType> getSpecialMove() {
         return specialMove;
+    }
+
+    public BooleanProperty getGameOver() {
+        return gameOver;
+    }
+
+    public Result getResult() {
+        return result;
+    }
+
+    public ObservableList<Piece> getTaken() {
+        return takenPieces;
     }
 }
 

@@ -14,7 +14,6 @@ public class TimeListener implements ChangeListener<String> {
     public TimeListener(Label timeLabel, StringProperty stringProperty) {
         time = timeLabel;
         property = stringProperty;
-//        property.addListener(this);
         property.addListener(this);
 
     }
