@@ -6,7 +6,7 @@ import javafx.concurrent.Task;
 
 public class Timer {
     private long currentStartTime;
-    private int time;
+    private long time;
     private long offset;
     private boolean running;
 
@@ -58,11 +58,12 @@ public class Timer {
             };
         }
     };
+
     public StringProperty getProperty() {
         return (StringProperty) service.messageProperty();
     }
 
-    public int getTime() {
+    public long getTime() {
         return time;
     }
 }

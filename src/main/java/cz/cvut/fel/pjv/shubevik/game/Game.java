@@ -6,7 +6,7 @@ import cz.cvut.fel.pjv.shubevik.moves.Move;
 import cz.cvut.fel.pjv.shubevik.moves.MoveType;
 import cz.cvut.fel.pjv.shubevik.pieces.*;
 import cz.cvut.fel.pjv.shubevik.players.Player;
-import cz.cvut.fel.pjv.shubevik.players.RandomPlayer;
+import cz.cvut.fel.pjv.shubevik.players.PlayerType;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -16,7 +16,6 @@ import javafx.collections.ObservableList;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 import java.util.logging.*;
 
 public class Game {
@@ -25,11 +24,12 @@ public class Game {
 
     private Board board;
     private Map<PColor, Player> players;
-    private Player currentPlayer;
+    private ObjectProperty<Player> currentPlayer;
     private Result result;
     private final boolean clock;
+    private boolean started;
     private ObservableList<Piece> takenPieces;
-    private ObservableList<Move> previousMoves;
+    private ObservableList<Move> lastMoves;
 
     private int fullMoves;
     private int halfMoves;
@@ -38,7 +38,7 @@ public class Game {
 
     public Game(Player p1, Player p2, boolean clock) {
         takenPieces = FXCollections.observableList(new ArrayList<>());
-        previousMoves = FXCollections.observableList(new ArrayList<>());
+        lastMoves = FXCollections.observableList(new ArrayList<>());
 
         players = new HashMap<>();
         players.put(p1.getColor(), p1);
@@ -47,8 +47,8 @@ public class Game {
         result = Result.IN_PROCESS;
         board = new Board();
         this.clock = clock;
-        currentPlayer = players.get(PColor.WHITE);
-        if (clock) currentPlayer.startTimer();
+        started = false;
+        currentPlayer = new SimpleObjectProperty<>();
 
         fullMoves = 0;
         halfMoves = 0;
@@ -57,40 +57,61 @@ public class Game {
         specialMove = new SimpleObjectProperty<>();
     }
 
+    public static PColor opposite(PColor color) {
+        return color == PColor.WHITE ? PColor.BLACK : PColor.WHITE;
+    }
+
+    public void begin() {
+        if (!started) {
+            initialEvaluate();
+            currentPlayer.set(players.get(PColor.WHITE));
+            started = true;
+            if (clock) getCurrentPlayer().startTimer();
+            if (getCurrentPlayer().getType() == PlayerType.RANDOM) randomMoveCurrent();
+        }
+    }
+
     public boolean takeMove(Move move) {
         if (isMoveValid(move)) {
-            logger.log(Level.INFO, "Valid move");
             makeMove(move);
-            board.setLastMove(move);
-            isOver();
-            switchPlayers();
+            logger.log(Level.INFO, "Valid move");
+            logger.log(Level.INFO, getCurrentColor() + board.toString());
+            evaluateAndSwitch();
             return true;
         }
-        logger.log(Level.INFO, "Invalid move");
         return false;
     }
 
-    public void makeMove(Move move) {
-        if (move.endOccupied()) takenPieces.add(move.getEnd().getPiece());
-        move.getStart().getPiece().setWasMoved(true);
-        movePieces(move);
+    private void makeMove(Move move) {
+        movePieces(move, false);
+        if (move.isEndOccupied()) {
+            takenPieces.add(move.getCapture());
+        }
+        lastMoves.add(move);
         // Castling
-        previousMoves.add(move);
-        if (move.getPiece() instanceof King && move.getPiece().yDiff(move) == 2) {
+        if (move.getPiece() instanceof King &&
+                move.getPiece().yDiff(move) == 2) {
             doCastling(move);
-            specialMove.set(MoveType.CASTLING);
+            if (move.getPiece().isRight(move)) {
+                specialMove.set(MoveType.CASTLING_KINGSIDE);
+            } else { // Left
+                specialMove.set(MoveType.CASTLING_QUEENSIDE);
+            }
         }
         // En Passant
-        else if (move.getPiece() instanceof Pawn && ((Pawn) move.getPiece()).isEnPassant(board,move)) {
+        else if (move.getPiece() instanceof Pawn &&
+                ((Pawn) move.getPiece()).isEnPassant(this,move)) {
             doEnPassant(move);
             specialMove.set(MoveType.EN_PASSANT);
         }
         // Promote
-        else if (move.getPiece() instanceof Pawn && ((move.getColor() == PColor.WHITE && move.getEnd().x == 7) || (move.getColor() == PColor.BLACK && move.getEnd().x == 0))) {
+        else if (move.getPiece() instanceof Pawn &&
+                ((move.getColor() == PColor.WHITE && move.getEnd().x == 7) ||
+                        (move.getColor() == PColor.BLACK && move.getEnd().x == 0))) {
             specialMove.set(MoveType.PROMOTION);
         }
         else {
-            specialMove.set(MoveType.NORMAL);
+            specialMove.set(MoveType.NONE);
         }
     }
     public List<Tile> findPotentialMoves(PColor color) {
@@ -98,7 +119,7 @@ public class Game {
         for (int x = 0; x < 8; ++x) {
             for (int y = 0; y < 8; ++y) {
                 Tile t =  board.getTile(x, y);
-                if (!t.isOccupied() || t.getPieceColor() == (color == PColor.WHITE ? PColor.BLACK : PColor.WHITE)) {
+                if (!t.isOccupied() || t.getPieceColor() == opposite(color)) {
                     potentialMoves.add(t);
                 }
             }
@@ -107,24 +128,23 @@ public class Game {
     }
     public List<Move> findMovesPiece(Tile tile) {
         List<Move> possibleMoves = new ArrayList<>();
+        if (!tile.isOccupied()) return possibleMoves;
         Move m = new Move(tile, null);
         for (Tile t : findPotentialMoves(m.getColor())) {
             m.setEnd(t);
-            if (
-                    tile.isOccupied() &&
+            m.update();
+            if (m.checkMove() &&
                     tile.getPiece().isValid(this, m) &&
                     pathClear(m) &&
-                    !checkAfterMove(m)
-            ) {
+                    !checkAfterMove(m)) {
                 possibleMoves.add(m.copyMove());
             }
         }
         return possibleMoves;
     }
 
-    public boolean canMoveOpponent() {
-        PColor opponent = currentPlayer.getColor() == PColor.WHITE ? PColor.BLACK : PColor.WHITE;
-        for (Tile t : findPiecesColor(opponent)) {
+    public boolean canMoveOpponent(PColor color) {
+        for (Tile t : findPiecesColor(opposite(color))) {
             if (!findMovesPiece(t).isEmpty()) {
                 return true;
             }
@@ -155,9 +175,10 @@ public class Game {
 
     public boolean tileUnderAttack(Tile tile) {
         Move m = new Move(null, tile);
-        PColor attacker = tile.getPieceColor() == PColor.WHITE ? PColor.BLACK : PColor.WHITE;
+        PColor attacker = opposite(tile.getPieceColor());
         for (Tile s : findPiecesColor(attacker)) {
             m.setStart(s);
+            m.update();
             if (m.getPiece().isValid(this, m) && pathClear(m)) {
                 return true;
             }
@@ -176,8 +197,9 @@ public class Game {
         return check;
     }
 
-    public boolean checkOpponent() {
-        return tileUnderAttack(findKings().get(currentPlayer.getColor() == PColor.WHITE ? PColor.BLACK : PColor.WHITE));
+    public boolean checkOpponent(PColor color) {
+        PColor opponent = opposite(color);
+        return tileUnderAttack(findKings().get(opponent));
     }
 
     public Map<PColor, Tile> findKings() {
@@ -204,34 +226,33 @@ public class Game {
         return pieces;
     }
 
-    public boolean isMoveValid(Move move) {
+    private boolean isMoveValid(Move move) {
         return move.checkMove() &&
-                currentPlayer == players.get(move.getColor()) &&
+                currentPlayer.get() == players.get(move.getColor()) &&
                 move.getPiece().isValid(this, move) &&
                 pathClear(move) &&
                 !checkAfterMove(move);
     }
 
     // Do special moves
-    public void doCastling(Move move) {
-        System.out.println("Doing castling");
+    private void doCastling(Move move) {
         Move m;
         if (move.getColor() == PColor.WHITE) {
             m = move.getPiece().isRight(move) ?
                     new Move(getTile(0,7), getTile(0,5)) :
                     new Move(getTile(0,0), getTile(0,3));
-            movePieces(m);
+            movePieces(m, false);
         }
         else { // BLACK
             m = move.getPiece().isRight(move) ?
                     new Move(getTile(7,7), getTile(7,5)) :
                     new Move(getTile(7,0), getTile(7,3));
-            movePieces(m);
+            movePieces(m, false);
         }
         halfMoves++;
     }
 
-    public void doEnPassant(Move move) {
+    private void doEnPassant(Move move) {
         if (move.getColor() == PColor.WHITE) {
             Tile enemyTile = getTile(move.getEnd().x-1, move.getEnd().y);
             takenPieces.add(enemyTile.getPiece());
@@ -239,27 +260,24 @@ public class Game {
         }
     }
 
-    public void doPromotion(Piece piece) {
-        board.getLastMove().getEnd().setPiece(piece);
-        isOver();
+    public void setPromPiece(Piece piece) {
+        getLastMove().getEnd().setPiece(piece);
     }
 
-
-    // Evaluate game
-
-    public boolean isCheckmate() {
-        boolean opponentCheckmate = !canMoveOpponent() && checkOpponent();
-        if (opponentCheckmate) result = currentPlayer.getColor() == PColor.WHITE ? Result.WHITE_WIN : Result.BLACK_WIN;
+    // Game evaluation
+    private boolean isCheckmateOpponent(PColor color) {;
+        boolean opponentCheckmate = !canMoveOpponent(color) && checkOpponent(color);
+        if (opponentCheckmate) result = color == PColor.WHITE ? Result.WHITE_WIN : Result.BLACK_WIN;
         return opponentCheckmate;
     }
 
-    public boolean isStalemate() {
-        boolean stalemate = !canMoveOpponent() && !checkOpponent();
+    private boolean isStalemateOpponent(PColor color) {
+        boolean stalemate = !canMoveOpponent(color) && !checkOpponent(color);
         if (stalemate) result = Result.DRAW;
         return stalemate;
     }
 
-    public boolean isInsufficientMaterial() {
+    private boolean isInsufficientMaterial() {
         List<Tile> pieceTiles = findPiecesColor(PColor.WHITE);
         List<Piece> whitePieces = new ArrayList<>();
         for (Tile t : pieceTiles) whitePieces.add(t.getPiece());
@@ -280,29 +298,53 @@ public class Game {
         return insufficientWhite && insufficientBlack;
     }
 
-    public boolean isFiftyMoves() {
+    private boolean isFiftyMoves() {
         boolean fiftyMoves = fullMoves >= 50;
         if (fiftyMoves) result = Result.DRAW;
         return fiftyMoves;
     }
 
-    public boolean isThreeFoldRep() {
+    private boolean isThreeFoldRep() {
         return false;
     }
 
-    public boolean isOver() {
-        boolean ended = isCheckmate() || isStalemate() || isInsufficientMaterial() || isFiftyMoves() || isThreeFoldRep();
+    private void evaluateForColor(PColor color) {
+        boolean ended = isCheckmateOpponent(color) || isStalemateOpponent(color) || isInsufficientMaterial() || isFiftyMoves() || isThreeFoldRep();
         gameOver.set(ended);
-        return ended;
     }
 
-    public void movePieces(Move move) {
-        move.getStart().setPiece(null);
-        move.getEnd().setPiece(move.getPiece());
+    public void initialEvaluate() {
+        evaluateForColor(PColor.WHITE);
+        if (!gameOver.get()) {
+            evaluateForColor(PColor.BLACK);
+        }
     }
 
-    public void moveIncrement(Move move) {
-        if (move.getPiece() instanceof Pawn || move.endOccupied()) {
+    public void evaluateAndSwitch() {
+        evaluateForColor(getCurrentColor());
+        if (getSpecialMove().get() != MoveType.PROMOTION && getResult() == Result.IN_PROCESS) {
+            switchPlayers();
+        }
+    }
+
+    public boolean impossiblePosition() {
+        return checkOpponent(PColor.WHITE);
+    }
+
+    public void movePieces(Move move, boolean swap) {
+        move.getPiece().setWasMoved(true);
+        if (swap) {
+            move.getStart().setPiece(move.getCapture());
+            move.getEnd().setPiece(move.getPiece());
+        }
+        else {
+            move.getStart().setPiece(null);
+            move.getEnd().setPiece(move.getPiece());
+        }
+    }
+
+    private void moveIncrement(Move move) {
+        if (move.getPiece() instanceof Pawn || move.isEndOccupied()) {
             halfMoves = 0;
             fullMoves = 0;
         }
@@ -312,24 +354,23 @@ public class Game {
         if (move.getColor() == PColor.BLACK) fullMoves++;
     }
 
-    public void switchPlayers() {
+    private void switchPlayers() {
         if (!gameOver.get()) {
-            currentPlayer.stopTimer();
-            currentPlayer = players.values().stream().filter(player -> player != currentPlayer).collect(Collectors.toList()).get(0);
-            currentPlayer.startTimer();
-
-            // Move randomly
-            if (currentPlayer instanceof RandomPlayer) {
-                takeMove(randomMove());
-            }
+            if (clock) currentPlayer.get().stopTimer();
+            currentPlayer.set(getCurrentColor() == PColor.WHITE ? players.get(PColor.BLACK) : players.get(PColor.WHITE));
+            if (clock && !gameOver.get()) currentPlayer.get().startTimer();
         }
     }
 
-    private Move randomMove() {
-        List<Tile> pieces = findPiecesColor(currentPlayer.getColor() == PColor.WHITE ? PColor.BLACK : PColor.WHITE);
-        pieces = pieces.stream().filter(tile -> !findMovesPiece(tile).isEmpty()).collect(Collectors.toList());
+    public void randomMoveCurrent() {
+        // Find all pieces of current player
+        List<Tile> pieces = findPiecesColor(getCurrentColor());
+        // Filter out pieces with no moves
+        pieces.removeIf(t -> findMovesPiece(t).isEmpty());
+        // Choose random piece;
         List<Move> moves = findMovesPiece(pieces.get(ThreadLocalRandom.current().nextInt(pieces.size())));
-        return moves.get(ThreadLocalRandom.current().nextInt(moves.size()));
+        // Choose random move
+        takeMove(moves.get(ThreadLocalRandom.current().nextInt(moves.size())));
     }
 
     public void stopTimers() {
@@ -338,7 +379,7 @@ public class Game {
     }
 
     public String generatePGN() {
-        if (previousMoves.size() == 0) {
+        if (lastMoves.size() == 0) {
             return null;
         }
         return "1";
@@ -356,16 +397,13 @@ public class Game {
         return players;
     }
 
-    public Player getCurrent() {
-        return currentPlayer;
-    }
-
     public ObservableList<Move> getLastMoves() {
-        return previousMoves;
+        return lastMoves;
     }
 
     public Move getLastMove() {
-        return previousMoves.get(previousMoves.size()-1);
+        if (lastMoves.size() == 0) return null;
+        return lastMoves.get(lastMoves.size()-1);
     }
 
     public ObjectProperty<MoveType> getSpecialMove() {
@@ -382,6 +420,22 @@ public class Game {
 
     public ObservableList<Piece> getTaken() {
         return takenPieces;
+    }
+
+    public ObjectProperty<Player> getCurrent() {
+        return currentPlayer;
+    }
+
+    public Player getCurrentPlayer() {
+        return currentPlayer.get();
+    }
+
+    public PColor getCurrentColor() {
+        return currentPlayer.get().getColor();
+    }
+
+    public boolean hasStarted() {
+        return started;
     }
 }
 

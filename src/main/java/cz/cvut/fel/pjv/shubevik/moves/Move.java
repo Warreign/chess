@@ -8,15 +8,22 @@ public class Move {
 
     private Tile start, end;
     private Piece piece;
+    private Piece capture;
 
     public Move(Tile s, Tile e) {
         this.start = s;
         this.end = e;
         this.piece = s != null ? s.getPiece() : null;
+        this.capture = e != null ? e.getPiece() : null;
     }
 
     public boolean checkMove() {
         return (start != end && piece != null && start != null && end != null);
+    }
+
+    public void update() {
+        piece = start != null ? start.getPiece() : null;
+        capture =  end != null ? end.getPiece() : null;
     }
 
     public Tile getStart() {
@@ -40,8 +47,8 @@ public class Move {
         return piece != null ? piece.getColor() : null;
     }
 
-    public boolean endOccupied() {
-        return end.isOccupied();
+    public boolean isEndOccupied() {
+        return getCapture() != null;
     }
 
     public Move copyMove() {
@@ -52,5 +59,12 @@ public class Move {
         return piece;
     }
 
+    public Piece getCapture() {
+        return capture;
+    }
 
+    @Override
+    public String toString() {
+        return String.format("%s -> %s %s %s", start, end, piece, getColor());
+    }
 }

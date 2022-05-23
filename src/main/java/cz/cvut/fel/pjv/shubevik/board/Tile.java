@@ -27,4 +27,9 @@ public class Tile {
     public PColor getPieceColor() {
         return isOccupied() ? piece.getColor() : null;
     }
+
+    @Override
+    public String toString() {
+        return String.format("(%d,%d)", x,y);
+    }
 }

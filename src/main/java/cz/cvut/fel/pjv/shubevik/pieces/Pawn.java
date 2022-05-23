@@ -11,31 +11,31 @@ public class Pawn extends Piece {
 
     public boolean isValid(Game game, Move move) {
         return (!move.getEnd().isOccupied() || move.getEnd().getPieceColor() != getColor()) &&
-                (isNormalMove(move) || isLongMove(game.getBoard(), move) || isCapture(move) || isEnPassant(game.getBoard(), move));
+                (isNormalMove(move) || isLongMove(game.getBoard(), move) || isCapture(move) || isEnPassant(game, move));
     }
 
     public boolean isNormalMove(Move move) {
         if (move.getColor() == PColor.WHITE) {
-            return isUp(move) && !move.endOccupied() && xDiff(move) == 1 && yDiff(move) == 0;
+            return isUp(move) && !move.isEndOccupied() && xDiff(move) == 1 && yDiff(move) == 0;
         }
         else {
-            return isDown(move) && !move.endOccupied() && xDiff(move) == 1 && yDiff(move) == 0;
+            return isDown(move) && !move.isEndOccupied() && xDiff(move) == 1 && yDiff(move) == 0;
         }
     }
 
     public boolean isLongMove(Board board, Move move) {
         if (move.getColor() == PColor.WHITE) {
-            return isUp(move) && !move.endOccupied() && xDiff(move) == 2 && yDiff(move) == 0 && !wasMoved() &&
+            return isUp(move) && !move.isEndOccupied() && xDiff(move) == 2 && yDiff(move) == 0 && !wasMoved() &&
                     !board.getTile(move.getStart().x+1, move.getStart().y).isOccupied();
         }
         else {
-            return isDown(move) && !move.endOccupied() && xDiff(move) == 2 && yDiff(move) == 0 && !wasMoved() &&
+            return isDown(move) && !move.isEndOccupied() && xDiff(move) == 2 && yDiff(move) == 0 && !wasMoved() &&
                     !board.getTile(move.getStart().x-1, move.getStart().y).isOccupied();
         }
     }
 
-    public boolean isEnPassant(Board board, Move move) {
-        Move lm = board.getLastMove();
+    public boolean isEnPassant(Game game, Move move) {
+        Move lm = game.getLastMove();
         if (getColor() == PColor.WHITE) {
             return lm != null &&
                     move.getEnd().x == move.getStart().x + 1 &&
@@ -65,5 +65,10 @@ public class Pawn extends Piece {
                     isDown(move) &&
                     move.getEnd().isOccupied();
         }
+    }
+
+    @Override
+    public String toString() {
+        return "P";
     }
 }

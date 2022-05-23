@@ -1,6 +1,7 @@
 package cz.cvut.fel.pjv.shubevik.board;
 
 
+import cz.cvut.fel.pjv.shubevik.GUI.GuiController;
 import cz.cvut.fel.pjv.shubevik.game.PColor;
 import cz.cvut.fel.pjv.shubevik.moves.Move;
 import cz.cvut.fel.pjv.shubevik.pieces.*;
@@ -26,9 +27,21 @@ public class Board {
         if ((y == 0 || y == 7) && x == 7) return new Rook(PColor.BLACK);
         if (x == 6) return new Pawn(PColor.BLACK);
 
+//        if (x == 4 && y == 0) return new Bishop(PColor.BLACK);
+//        if (x == 0 && y == 0) return new Queen(PColor.BLACK);
+//        if (x == 3 && y == 4) return new King(PColor.WHITE);
+//        if (x == 3 && y == 7) return new King(PColor.BLACK);
+
+//        if (x == 7 && y == 0) return new Pawn(PColor.BLACK);
+
 //        if (x == 7 && y == 0) return new King(PColor.BLACK);
 //        if (x == 5 && y == 0) return new King(PColor.WHITE);
 //        if (x == 6 && y == 7) return new Queen(PColor.WHITE);
+
+//        if (x == 7 && y == 7) return new King(PColor.WHITE);
+//        if (x == 7 && y == 0) return new King(PColor.BLACK);
+//        if ((x == 1) && (y == 0 || y == 3)) return new Pawn(PColor.BLACK);
+
 
 
         return null;
@@ -64,11 +77,21 @@ public class Board {
 
     public void setPiece(int x, int y, Piece piece) { grid[x][y].setPiece(piece); }
 
-    public Move getLastMove() {
-        return lastMove;
-    }
-
-    public void setLastMove(Move move) {
-        lastMove = move;
+    @Override
+    public String toString() {
+        StringBuilder s = new StringBuilder("\n");
+        for (int x = 7; x >= 0; --x) {
+            s.append(GuiController.MARKERS_NUM.get(x)).append(" ");
+            for (int y = 0; y < 8; ++y) {
+                if (!getTile(x,y).isOccupied()) s.append("*  ");
+                else s.append(getTile(x, y).getPiece().getColor().toString().toLowerCase().toCharArray()[0]).append(getTile(x, y).getPiece().toString()).append(" ");
+            }
+            s.append("\n");
+        }
+        s.append("  ");
+        for (int i = 0; i < 8; ++i) {
+            s.append(GuiController.MARKERS_CHAR.get(i)).append("  ");
+        }
+        return s.append("\n").toString();
     }
 }

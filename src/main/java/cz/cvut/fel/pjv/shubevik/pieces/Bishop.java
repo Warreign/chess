@@ -12,4 +12,9 @@ public class Bishop extends Piece {
         return (!move.getEnd().isOccupied() || move.getEnd().getPieceColor() != getColor()) &&
                 isDiagonal(move);
     }
+
+    @Override
+    public String toString() {
+        return "B";
+    }
 }

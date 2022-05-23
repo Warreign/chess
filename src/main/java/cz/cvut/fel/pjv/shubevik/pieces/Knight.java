@@ -12,4 +12,9 @@ public class Knight extends Piece {
         return (!move.getEnd().isOccupied() || move.getEnd().getPieceColor() != getColor()) &&
                 isJump(move);
     }
+
+    @Override
+    public String toString() {
+        return "N";
+    }
 }

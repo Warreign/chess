@@ -12,4 +12,9 @@ public class Queen extends Piece {
         return (!move.getEnd().isOccupied() || move.getEnd().getPieceColor() != getColor()) &&
                 (isDiagonal(move) || isStraight(move));
     }
+
+    @Override
+    public String toString() {
+        return "Q";
+    }
 }

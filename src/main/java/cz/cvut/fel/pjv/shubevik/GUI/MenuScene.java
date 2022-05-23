@@ -1,5 +1,6 @@
 package cz.cvut.fel.pjv.shubevik.GUI;
 
+import cz.cvut.fel.pjv.shubevik.game.Game;
 import cz.cvut.fel.pjv.shubevik.game.PColor;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
@@ -22,9 +23,10 @@ import javafx.stage.Stage;
 
 import java.util.Arrays;
 
+import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.BACKGROUND_IMAGE;
+
 public class MenuScene extends Scene {
 
-    public static final Image BACKGROUND_IMAGE = new Image(GuiController.class.getResourceAsStream("/cz/cvut/fel/pjv/shubevik/images/menu.jpg"));
     public static int MAX_NAME_SIZE = 20;
 
     private GuiController controller;
@@ -110,24 +112,7 @@ public class MenuScene extends Scene {
                 colorP2.getValue(),
                 aiP1.isSelected(),
                 aiP2.isSelected(),
-                time,
-                false);
-        settingsStage.close();
-    };
-
-    private EventHandler<ActionEvent> editHandler = e -> {
-        if (checkParameters() == false) return;
-        int time = timed.isSelected() ?
-                Integer.parseUnsignedInt(timeHours.getText()) * 3600 + Integer.parseUnsignedInt(timeMinutes.getText()) * 60 :
-                0;
-        controller.startGame(nameP1.getText(),
-                nameP2.getText(),
-                colorP1.getValue(),
-                colorP2.getValue(),
-                aiP1.isSelected(),
-                aiP2.isSelected(),
-                time,
-                true);
+                time);
         settingsStage.close();
     };
 
@@ -160,7 +145,7 @@ public class MenuScene extends Scene {
         settingsStage = new Stage();
         settingsStage.setScene(new Scene(settings, 300, 180));
         settingsStage.getIcons().add(GuiController.GAME_ICON);
-        settingsStage.initOwner(controller.main);
+        settingsStage.initOwner(controller.getStage());
         settingsStage.initModality(Modality.WINDOW_MODAL);
 
         settings.setSpacing(10);
@@ -171,7 +156,13 @@ public class MenuScene extends Scene {
         // Settings
             // Players
         aiP1 = new CheckBox("AI");
+        aiP1.selectedProperty().addListener(((observableValue, aBoolean, t1) -> {
+            if (t1) aiP2.setSelected(false);
+        }));
         aiP2 = new CheckBox("AI");
+        aiP2.selectedProperty().addListener(((observableValue, aBoolean, t1) -> {
+            if (t1) aiP1.setSelected(false);
+        }));
         nameP1 = new TextField();
         nameP2 = new TextField();
         nameP1.setPromptText("Player 1");
@@ -194,6 +185,16 @@ public class MenuScene extends Scene {
         colorP2.prefWidthProperty().bind(settingsStage.widthProperty().multiply(0.25));
         colorP1.setPromptText("Color");
         colorP2.setPromptText("Color");
+        colorP1.getSelectionModel().selectedItemProperty().addListener(((observableValue, color, t1) -> {
+            if (colorP1.getSelectionModel().getSelectedItem() == colorP2.getSelectionModel().getSelectedItem()) {
+                colorP2.getSelectionModel().select(Game.opposite(t1));
+            }
+        }));
+        colorP2.getSelectionModel().selectedItemProperty().addListener(((observableValue, color, t1) -> {
+            if (colorP1.getSelectionModel().getSelectedItem() == colorP2.getSelectionModel().getSelectedItem()) {
+                colorP1.getSelectionModel().select(Game.opposite(t1));
+            }
+        }));
 
         HBox p1 = new HBox(10, aiP1, nameP1, colorP1);
         HBox p2 = new HBox(10, aiP2, nameP2, colorP2);
@@ -230,9 +231,6 @@ public class MenuScene extends Scene {
         Button playButton = new Button("Play");
         playButton.setOnAction(playHandler);
 
-        Button editButton = new Button("Edit board");
-        editButton.setOnAction(editHandler);
-
         Button cancelButton = new Button("Cancel");
         cancelButton.setOnAction(e -> settingsStage.close());
         cancelButton.setCancelButton(true);
@@ -240,7 +238,7 @@ public class MenuScene extends Scene {
         HBox actionButtons = new HBox(30);
         actionButtons.setPrefWidth(settingsStage.getWidth());
         actionButtons.setAlignment(Pos.CENTER);
-        actionButtons.getChildren().addAll(cancelButton, editButton, playButton);
+        actionButtons.getChildren().addAll(cancelButton, playButton);
 
             // Title
         Label title = new Label("Game settings");

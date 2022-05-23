@@ -18,7 +18,7 @@ public class TimeListener implements ChangeListener<String> {
 
     }
 
-    public static String convert(int seconds) {
+    public static String convert(long seconds) {
         return String.format("%02d:%02d:%02d",seconds / 3600, (seconds / 60) % 60, seconds % 60);
     }
 

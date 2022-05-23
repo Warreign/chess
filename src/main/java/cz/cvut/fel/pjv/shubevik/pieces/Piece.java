@@ -18,13 +18,11 @@ public abstract class Piece {
     }
 
     public abstract boolean isValid(Game game, Move move);
-    public boolean isCaptured() {
-        return captured;
-    }
 
     public boolean wasMoved() {
         return moved;
     }
+
     public void setWasMoved(boolean wasMoved) { moved = wasMoved; }
 
     public int xDiff(Move move) {

@@ -12,4 +12,9 @@ public class Rook extends Piece {
         return (!move.getEnd().isOccupied() || move.getEnd().getPieceColor() != getColor()) &&
                 isStraight(move);
     }
+
+    @Override
+    public String toString() {
+        return "R";
+    }
 }

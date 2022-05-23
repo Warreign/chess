@@ -12,12 +12,10 @@ public class King extends Piece {
         return (!move.getEnd().isOccupied() || move.getEnd().getPieceColor() != getColor()) &&
                 ((xDiff(move) <= 1 && yDiff(move) <= 1) ||
                         (xDiff(move) == 0 && yDiff(move) == 2 &&
-                         !inCheck(game) &&
                          canCastleRook(game, move) &&
                          canCastleKing(game, move)));
     }
     public boolean inCheck(Game game) {
-
         return game.tileUnderAttack(game.findKings().get(getColor()));
     }
 
@@ -50,27 +48,32 @@ public class King extends Piece {
         boolean r;
         if (getColor() == PColor.WHITE) {
             if (isRight(move)) {
-                return !wasMoved() &&
+                return !wasMoved() && !inCheck(game) &&
                         !game.checkAfterMove(new Move(game.getTile(0,4), game.getTile(0,5))) &&
                         !game.checkAfterMove(new Move(game.getTile(0,4), game.getTile(0,6)));
             }
             else { // left
-                return !wasMoved() &&
+                return !wasMoved() && !inCheck(game) &&
                         !game.checkAfterMove(new Move(game.getTile(0,4), game.getTile(0,3))) &&
                         !game.checkAfterMove(new Move(game.getTile(0,4), game.getTile(0,2)));
             }
         }
         else { // black
             if (isRight(move)) {
-                return !wasMoved() &&
+                return !wasMoved() && !inCheck(game) &&
                         !game.checkAfterMove(new Move(game.getTile(7,4), game.getTile(7,5))) &&
                         !game.checkAfterMove(new Move(game.getTile(7,4), game.getTile(7,6)));
             }
             else { // left
-                return !wasMoved() &&
+                return !wasMoved() && !inCheck(game) &&
                         !game.checkAfterMove(new Move(game.getTile(7,4), game.getTile(7,2))) &&
                         !game.checkAfterMove(new Move(game.getTile(7,4), game.getTile(7,3)));
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "K";
     }
 }
