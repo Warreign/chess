@@ -4,11 +4,12 @@ import cz.cvut.fel.pjv.shubevik.game.PColor;
 import cz.cvut.fel.pjv.shubevik.game.Game;
 import cz.cvut.fel.pjv.shubevik.moves.Move;
 
+import java.lang.reflect.InvocationTargetException;
+
 public abstract class Piece {
 
     private boolean moved;
     private final PColor color;
-    private boolean captured;
     public Piece(PColor color) {
         this.color = color;
     }
@@ -59,5 +60,14 @@ public abstract class Piece {
 
     public boolean isDown(Move move) {
         return move.getEnd().x - move.getStart().x < 0;
+    }
+
+    public Piece getCopy() {
+        Piece p = null;
+        try {
+            p = this.getClass().getConstructor(PColor.class).newInstance(getColor());
+        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {}
+        p.setWasMoved(wasMoved());
+        return p;
     }
 }

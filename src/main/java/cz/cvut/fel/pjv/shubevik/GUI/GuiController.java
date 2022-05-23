@@ -99,11 +99,11 @@ public class GuiController extends Application {
 
         stage.setMaxHeight(Screen.getPrimary().getBounds().getHeight());
         stage.minWidthProperty().bind(stage.heightProperty().multiply(1.5));
-//        stage.minHeightProperty().bind(menuScene.widthProperty().divide(1.5));
+//        stage.minHeightProperty().bind(menuScene.widthProperty().divide(1.6));
         stage.setMinHeight(600);
 
         stage.show();
-//        startGame("James", "Connor", PColor.WHITE, PColor.BLACK, false, true, 1200);
+        startGame("James", "Connor", PColor.WHITE, PColor.BLACK, true, true, 0);
     }
 
     public static void main(String[] args) {
@@ -117,8 +117,8 @@ public class GuiController extends Application {
     }
 
     public void startGame(String name1, String name2, PColor color1, PColor color2, boolean ai1, boolean ai2, int time) {
-        Player p1 = new Player(name1, color1, new Timer(time), ai1 ? PlayerType.RANDOM : PlayerType.HUMAN);
-        Player p2 = new Player(name2, color2, new Timer(time), ai2 ? PlayerType.RANDOM : PlayerType.HUMAN);
+        Player p1 = new Player(name1, color1, time != 0 ? new Timer(time) : null, ai1 ? PlayerType.RANDOM : PlayerType.HUMAN);
+        Player p2 = new Player(name2, color2, time != 0 ? new Timer(time) : null, ai2 ? PlayerType.RANDOM : PlayerType.HUMAN);
 
         game = new Game(p1, p2, time != 0);
         gameScene = new GameScene(this);

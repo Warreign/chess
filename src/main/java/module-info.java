@@ -10,4 +10,5 @@ module cz.cvut.fel.pjv.shubevik {
     exports cz.cvut.fel.pjv.shubevik.game;
     exports cz.cvut.fel.pjv.shubevik.players;
     exports cz.cvut.fel.pjv.shubevik.moves;
+    exports cz.cvut.fel.pjv.shubevik.PGN;
 }

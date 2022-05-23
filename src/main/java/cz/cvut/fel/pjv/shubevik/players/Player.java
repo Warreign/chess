@@ -18,11 +18,11 @@ public class Player {
     }
 
     public void startTimer() {
-        timer.start();
+        if (timer != null) timer.start();
     }
 
     public void stopTimer() {
-        timer.stop();
+        if (timer != null) timer.stop();
     }
 
     public PColor getColor() {

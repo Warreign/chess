@@ -3,6 +3,7 @@ package cz.cvut.fel.pjv.shubevik.GUI;
 import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.HIGHLIGHTED_TILE;
 import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.PIECE_MAP;
 
+import cz.cvut.fel.pjv.shubevik.board.Board;
 import cz.cvut.fel.pjv.shubevik.board.Tile;
 import cz.cvut.fel.pjv.shubevik.game.Game;
 import cz.cvut.fel.pjv.shubevik.moves.Move;
@@ -40,10 +41,16 @@ public class BoardController {
         addListeners();
     }
 
-    public void updateBoard() {
+    public void updateBoard(Board board) {
         for (int x = 0; x < 8; x++) {
             for (int y = 0; y < 8; ++y) {
-                Tile t = game.getTile(x, y);
+                Tile t;
+                if (board == null) {
+                    t = game.getTile(x, y);
+                }
+                else {
+                    t = board.getTile(x, y);
+                }
                 if (t.isOccupied()) {
                     tiles[x][y].setPiece(PIECE_MAP.get(t.getPiece().getClass()).get(t.getPieceColor()));
                 }
@@ -85,13 +92,13 @@ public class BoardController {
         if (e.getDragboard().hasImage()) {
             if (controller.isFreeEdit()) {
                 game.movePieces(constructMove(e), true);
-                updateBoard();
+                updateBoard(null);
                 e.setDropCompleted(true);
             }
             else {
                 moveProperty.set(constructMove(e));
                 if (moveValid.get()) {
-                    updateBoard();
+                    updateBoard(null);
                 }
                 e.setDropCompleted(moveValid.get());
             }

@@ -9,12 +9,21 @@ public class Move {
     private Tile start, end;
     private Piece piece;
     private Piece capture;
+    private MoveType type;
 
     public Move(Tile s, Tile e) {
         this.start = s;
         this.end = e;
         this.piece = s != null ? s.getPiece() : null;
         this.capture = e != null ? e.getPiece() : null;
+    }
+
+    public Move(Tile s, Tile e, Piece p, Piece c, MoveType t) {
+        start = s;
+        end = e;
+        piece = p;
+        capture = c;
+        type = t;
     }
 
     public boolean checkMove() {
@@ -51,8 +60,8 @@ public class Move {
         return getCapture() != null;
     }
 
-    public Move copyMove() {
-        return new Move(start, end);
+    public Move getCopy() {
+        return new Move(start, end, piece, capture, type);
     }
 
     public Piece getPiece() {
@@ -63,8 +72,24 @@ public class Move {
         return capture;
     }
 
+    public boolean isCapture() {
+        return capture != null;
+    }
+
+    public MoveType getType() {
+        return type;
+    }
+
+    public void setType(MoveType type) {
+        this.type = type;
+    }
+
     @Override
     public String toString() {
-        return String.format("%s -> %s %s %s", start, end, piece, getColor());
+        return String.format("%s -> %s", start, end);
+    }
+
+    public boolean equals(Move other) {
+        return this.start.equals(other.start) && this.end.equals(other.end);
     }
 }

@@ -1,10 +1,13 @@
 package cz.cvut.fel.pjv.shubevik.GUI;
 
+import cz.cvut.fel.pjv.shubevik.PGN.GameState;
+import cz.cvut.fel.pjv.shubevik.PGN.PGNBuilder;
 import cz.cvut.fel.pjv.shubevik.board.Tile;
 import cz.cvut.fel.pjv.shubevik.game.Game;
 import cz.cvut.fel.pjv.shubevik.game.PColor;
 import cz.cvut.fel.pjv.shubevik.moves.Move;
 import cz.cvut.fel.pjv.shubevik.moves.MoveType;
+import cz.cvut.fel.pjv.shubevik.moves.SpecialMove;
 import cz.cvut.fel.pjv.shubevik.pieces.*;
 import cz.cvut.fel.pjv.shubevik.players.Player;
 import cz.cvut.fel.pjv.shubevik.players.PlayerType;
@@ -39,7 +42,7 @@ public class GameScene extends Scene {
 
     private ChangeListener<Move> userMoveListener;
     private ListChangeListener<Piece> takenPiecesListener;
-    private ChangeListener<MoveType> specialMoveListener;
+    private ChangeListener<SpecialMove> specialMoveListener;
     private ChangeListener<Boolean> gameOverListener;
     private ChangeListener<Player> currentPlayerListener;
 
@@ -51,6 +54,7 @@ public class GameScene extends Scene {
     private TileView[][] tiles;
     private Map<TileView, Tile> tileMap;
 
+
     private BorderPane sidePanel;
     private Label name1;
     private Label name2;
@@ -61,6 +65,12 @@ public class GameScene extends Scene {
     private TimeListener timeListener1;
     private TimeListener timeListener2;
     private Label message;
+    private Button startButton;
+
+    private boolean viewMode;
+    private int historyPosition;
+    private Button backButton;
+    private Button forwardButton;
 
     public GameScene(GuiController controller) {
         super(new Pane(), controller.getStage().getWidth(), controller.getStage().getHeight());
@@ -77,7 +87,7 @@ public class GameScene extends Scene {
         initListeners();
         initPromStage();
         boardController = new BoardController(controller, tiles, tileMap);
-        boardController.updateBoard();
+        boardController.updateBoard(null);
     }
 
     private void initBoard() {
@@ -127,10 +137,10 @@ public class GameScene extends Scene {
         // Time labels
         time1 = new Label();
         time2 = new Label();
-        time1.setText(TimeListener.convert(p1.getTimer().getTime()));
-        time2.setText(TimeListener.convert(p2.getTimer().getTime()));
-        new TimeListener(time1, p1.getTimer().getProperty());
-        new TimeListener(time2, p2.getTimer().getProperty());
+        time1.setText(p1.getTimer() != null ? TimeListener.convert(p1.getTimer().getTime()) : "" );
+        time2.setText(p2.getTimer() != null ? TimeListener.convert(p2.getTimer().getTime()) : "" );
+        if (p1.getTimer() != null) new TimeListener(time1, p1.getTimer().getProperty());
+        if (p2.getTimer() != null) new TimeListener(time2, p2.getTimer().getProperty());
 
         // Name labels
         name1 = new Label(p1.getName());
@@ -143,8 +153,6 @@ public class GameScene extends Scene {
         taken1.prefHeightProperty().bind(sidePanel.heightProperty().divide(10));
         taken2.prefWidthProperty().bind(sidePanel.widthProperty());
         taken2.prefHeightProperty().bind(sidePanel.heightProperty().divide(10));
-//        taken1.setPadding(new Insets(10));
-//        taken2.setPadding(new Insets(10));
         VBox playerTop = new VBox(10, name2, time2, taken2);
         VBox playerBottom = new VBox(10, taken1, time1, name1);
         playerTop.spacingProperty().bind(heightProperty().divide(100));
@@ -155,7 +163,6 @@ public class GameScene extends Scene {
 
         message = new Label();
         message.setWrapText(true);
-        sidePanel.setCenter(message);
 
         // Font autoresize
         IntegerProperty fontSize = new SimpleIntegerProperty();
@@ -166,7 +173,8 @@ public class GameScene extends Scene {
             sidePanel.setPadding(new Insets(t1.doubleValue() / 40));
         });
 
-        Button startButton = new Button("Start");
+        HBox buttons = new HBox(10);
+        startButton = new Button("Start");
         startButton.setOnAction(e -> {
             if (game.impossiblePosition()) {
                 message.setText("Impossible position");
@@ -177,8 +185,38 @@ public class GameScene extends Scene {
                 controller.setFreeEdit(false);
                 game.begin();
             }
+            startButton.setDisable(true);
         });
-        sidePanel.setLeft(startButton);
+        backButton = new Button("<-");
+        backButton.setDisable(true);
+        backButton.setOnAction(e -> {
+            if (historyPosition - 1 < 0) message.setText("First move");
+            else historyPosition--;
+            displayState(game.getHistory().get(historyPosition));
+        });
+        forwardButton = new Button("->");
+        forwardButton.setDisable(true);
+        forwardButton.setOnAction(e -> {
+            if (historyPosition + 1 == game.getHistory().size()) message.setText("Last move");
+            else historyPosition++;
+            displayState(game.getHistory().get(historyPosition));
+        });
+
+        Button b = new Button();
+        b.setOnAction(e -> {
+            if (game.hasStarted()) {
+                System.out.println(PGNBuilder.gameToPGN(game));
+            }
+        });
+
+        buttons.getChildren().add(b);
+
+        buttons.getChildren().addAll(backButton, startButton, forwardButton);
+
+        VBox middlePanel = new VBox(10, message, buttons);
+        middlePanel.setAlignment(Pos.CENTER);
+
+        sidePanel.setCenter(middlePanel);
 //
 //        Button b = new Button("Kings");
 //        b.setOnAction(e -> {
@@ -201,13 +239,11 @@ public class GameScene extends Scene {
         userMoveListener = (observableValue, move, t1) -> boardController.getMoveValid().set(game.takeMove(t1));
 
         specialMoveListener = (observableValue, type, t1) -> {
-            if (t1 == MoveType.CASTLING_KINGSIDE ||
-                    t1 == MoveType.CASTLING_QUEENSIDE ||
-                    t1 == MoveType.EN_PASSANT) {
-                boardController.updateBoard();
-                game.getSpecialMove().set(MoveType.NONE);
+            if (t1 == SpecialMove.CASTLING || t1 == SpecialMove.EN_PASSANT) {
+                boardController.updateBoard(null);
+                game.getSpecialMove().set(SpecialMove.NONE);
             }
-            if (t1 == MoveType.PROMOTION) {
+            if (t1 == SpecialMove.PROMOTION) {
                 if (game.getCurrent().get().getType() == PlayerType.HUMAN) {
                     openPromStage(game.getCurrentColor());
                 }
@@ -249,14 +285,16 @@ public class GameScene extends Scene {
                         message.setText("Black won!");
                         break;
                 }
+                game.appendState();
                 boardController.removeListeners();
+                enterViewMode();
             }
         };
 
         currentPlayerListener = (observableValue, player, t1) -> {
             if (t1.getType() == PlayerType.RANDOM) {
                 game.randomMoveCurrent();
-                boardController.updateBoard();
+                boardController.updateBoard(null);
             }
         };
     }
@@ -299,17 +337,30 @@ public class GameScene extends Scene {
         promStage.setOnCloseRequest(e -> setPromPiece(new Queen(game.getCurrentColor()), true));
     }
 
-    private void setPromPiece(Piece p, boolean evaluate) {
+    private void setPromPiece(Piece p, boolean user) {
         game.setPromPiece(p);
-        boardController.updateBoard();
-        game.getSpecialMove().set(MoveType.NONE);
-        if (evaluate) game.evaluateAndSwitch();
+        boardController.updateBoard(null);
+        game.getSpecialMove().set(SpecialMove.NONE);
+        if (user) {
+            game.evaluateAndSwitch();
+        }
         promStage.close();
     }
 
     private void openPromStage(PColor color) {
         promStage.setScene(color == PColor.WHITE ? whiteProm : blackProm);
         promStage.show();
+    }
+
+    private void enterViewMode() {
+        viewMode = true;
+        backButton.setDisable(false);
+        forwardButton.setDisable(false);
+        historyPosition = game.getHistory().size()-1;
+    }
+
+    private void displayState(GameState state) {
+        boardController.updateBoard(state.getBoard());
     }
 
     private void addListeners() {

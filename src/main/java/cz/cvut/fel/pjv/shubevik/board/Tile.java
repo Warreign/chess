@@ -1,5 +1,8 @@
 package cz.cvut.fel.pjv.shubevik.board;
 
+import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.MARKERS_CHAR;
+import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.MARKERS_NUM;
+
 import cz.cvut.fel.pjv.shubevik.game.PColor;
 import cz.cvut.fel.pjv.shubevik.pieces.Piece;
 
@@ -30,6 +33,11 @@ public class Tile {
 
     @Override
     public String toString() {
-        return String.format("(%d,%d)", x,y);
+        return String.format(MARKERS_CHAR.get(y) + MARKERS_NUM.get(x));
+    }
+
+    public boolean equals(Tile other) {
+        return this.x == other.x &&
+                this.y == other.y;
     }
 }
