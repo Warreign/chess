@@ -6,7 +6,6 @@ import cz.cvut.fel.pjv.shubevik.game.Game;
 import cz.cvut.fel.pjv.shubevik.game.PColor;
 import cz.cvut.fel.pjv.shubevik.moves.Move;
 import cz.cvut.fel.pjv.shubevik.pieces.Pawn;
-import javafx.scene.layout.Pane;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -76,8 +75,8 @@ public class PGNBuilder {
                     s.append(m.getPiece());
 
                     boolean canMoveSame = false;
-                    Game testGame = new Game(state.getBoard());
-                    testGame.getBoard().getTile(m.getEnd().x, m.getEnd().y).setPiece(null);
+                    Game testGame = new Game(state.getBoard().getCopy());
+                    testGame.getTile(m.getEnd().x, m.getEnd().y).setPiece(null);
                     List<Tile> pieces = testGame.findPiecesColor(m.getColor());
                     pieces.removeIf(t -> t.getPiece().getClass() != m.getPiece().getClass() || t.getPiece() instanceof Pawn);
                     if (pieces.size() != 0) {
@@ -92,7 +91,7 @@ public class PGNBuilder {
                         }
                     }
 
-                    if (m.getPiece() instanceof Pawn || canMoveSame)
+                    if (canMoveSame || (m.getPiece() instanceof Pawn && m.isCapture()))
                         s.append(m.getStart().toString().toCharArray()[0]);
 
                     if (m.isCapture()) s.append("x");

@@ -82,8 +82,8 @@ public class Game {
 
     public boolean takeMove(Move move) {
         if (isMoveValid(move)) {
-            makeMove(move);
             lastMove = move;
+            makeMove(move);
 //            logger.log(Level.INFO, "Valid move");
 //            logger.log(Level.INFO, getCurrentColor() + board.toString());
             evaluateAndSwitch();
@@ -273,6 +273,7 @@ public class Game {
     }
 
     public void setPromPiece(Piece piece) {
+        System.out.println(getLastMove());
         getLastMove().setType(MoveType.values()[Arrays.asList(Queen.class, Rook.class, Knight.class, Bishop.class).indexOf(piece.getClass())]);
         getLastMove().getEnd().setPiece(piece);
     }
@@ -393,7 +394,7 @@ public class Game {
     }
 
     public void appendState() {
-        System.out.println(counter++);
+//        System.out.println(getLastMove()
         history.add(new GameState(board.getCopy(),
                 copyTakenPieces(),
                 getLastMove() != null ? getLastMove().getCopy() : null,
@@ -407,12 +408,13 @@ public class Game {
         return taken;
     }
 
-    public Board getBoard() {
-        return board;
+    public void endGameWithResult(Result result) {
+        this.result = result;
+        gameOver.set(result != Result.IN_PROCESS);
     }
 
-    public void setBoard(Board board) {
-        this.board = board;
+    public Board getBoard() {
+        return board;
     }
 
     public Tile getTile(int x, int y) {

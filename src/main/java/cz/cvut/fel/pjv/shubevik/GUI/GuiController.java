@@ -99,7 +99,7 @@ public class GuiController extends Application {
 
         stage.setMaxHeight(Screen.getPrimary().getBounds().getHeight());
         stage.minWidthProperty().bind(stage.heightProperty().multiply(1.5));
-//        stage.minHeightProperty().bind(menuScene.widthProperty().divide(1.6));
+        stage.maxWidthProperty().bind(stage.heightProperty().multiply(1.5));
         stage.setMinHeight(600);
 
         stage.show();

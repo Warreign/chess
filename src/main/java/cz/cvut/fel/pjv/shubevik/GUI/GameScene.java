@@ -5,8 +5,8 @@ import cz.cvut.fel.pjv.shubevik.PGN.PGNBuilder;
 import cz.cvut.fel.pjv.shubevik.board.Tile;
 import cz.cvut.fel.pjv.shubevik.game.Game;
 import cz.cvut.fel.pjv.shubevik.game.PColor;
+import cz.cvut.fel.pjv.shubevik.game.Result;
 import cz.cvut.fel.pjv.shubevik.moves.Move;
-import cz.cvut.fel.pjv.shubevik.moves.MoveType;
 import cz.cvut.fel.pjv.shubevik.moves.SpecialMove;
 import cz.cvut.fel.pjv.shubevik.pieces.*;
 import cz.cvut.fel.pjv.shubevik.players.Player;
@@ -22,9 +22,12 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
@@ -65,12 +68,15 @@ public class GameScene extends Scene {
     private TimeListener timeListener1;
     private TimeListener timeListener2;
     private Label message;
+    private Label resultText;
     private Button startButton;
+    private Button resignButton;
 
     private boolean viewMode;
     private int historyPosition;
     private Button backButton;
     private Button forwardButton;
+    private Button toPgnButton;
 
     public GameScene(GuiController controller) {
         super(new Pane(), controller.getStage().getWidth(), controller.getStage().getHeight());
@@ -164,6 +170,9 @@ public class GameScene extends Scene {
         message = new Label();
         message.setWrapText(true);
 
+        resultText = new Label();
+        resultText.setWrapText(true);
+
         // Font autoresize
         IntegerProperty fontSize = new SimpleIntegerProperty();
         fontSize.bind(heightProperty().divide(25));
@@ -173,20 +182,6 @@ public class GameScene extends Scene {
             sidePanel.setPadding(new Insets(t1.doubleValue() / 40));
         });
 
-        HBox buttons = new HBox(10);
-        startButton = new Button("Start");
-        startButton.setOnAction(e -> {
-            if (game.impossiblePosition()) {
-                message.setText("Impossible position");
-            }
-            else {
-                message.setText("Game in process");
-                addListeners();
-                controller.setFreeEdit(false);
-                game.begin();
-            }
-            startButton.setDisable(true);
-        });
         backButton = new Button("<-");
         backButton.setDisable(true);
         backButton.setOnAction(e -> {
@@ -194,6 +189,24 @@ public class GameScene extends Scene {
             else historyPosition--;
             displayState(game.getHistory().get(historyPosition));
         });
+
+        toPgnButton = new Button("To PGN");
+        toPgnButton.setOnAction(e -> {
+//            System.out.println(PGNBuilder.gameToPGN(game));
+            TextArea pgn = new TextArea();
+            pgn.setWrapText(true);
+            pgn.setText(PGNBuilder.gameToPGN(game));
+            pgn.setEditable(false);
+            BorderPane bp = new BorderPane();
+            bp.setPadding(new Insets(5));
+            bp.setCenter(pgn);
+            Stage stage = new Stage();
+            stage.initOwner(controller.getStage());
+            stage.initModality(Modality.WINDOW_MODAL);
+            stage.setScene(new Scene(bp, 500, 300));
+            stage.show();
+        });
+
         forwardButton = new Button("->");
         forwardButton.setDisable(true);
         forwardButton.setOnAction(e -> {
@@ -201,19 +214,34 @@ public class GameScene extends Scene {
             else historyPosition++;
             displayState(game.getHistory().get(historyPosition));
         });
+        HBox buttonsRow1 = new HBox(10, backButton, toPgnButton, forwardButton);
+        buttonsRow1.setAlignment(Pos.CENTER);
 
-        Button b = new Button();
-        b.setOnAction(e -> {
-            if (game.hasStarted()) {
-                System.out.println(PGNBuilder.gameToPGN(game));
+        startButton = new Button("Start");
+        startButton.setOnAction(e -> {
+            if (game.impossiblePosition()) {
+                message.setText("Impossible position");
+            }
+            else {
+                message.setText("Game in process");
+                resignButton.setDisable(false);
+                addListeners();
+                controller.setFreeEdit(false);
+                game.begin();
+                startButton.setDisable(true);
             }
         });
 
-        buttons.getChildren().add(b);
+        resignButton = new Button("Resign");
+        resignButton.setDisable(true);
+        resignButton.setOnAction(e -> {
+            PColor winner = Game.opposite(game.getCurrentColor());
+            game.endGameWithResult(winner == PColor.WHITE ? Result.WHITE_WIN : Result.BLACK_WIN);
+        });
+        HBox buttonsRow2 = new HBox(10, startButton, resignButton);
+        buttonsRow2.setAlignment(Pos.CENTER);
 
-        buttons.getChildren().addAll(backButton, startButton, forwardButton);
-
-        VBox middlePanel = new VBox(10, message, buttons);
+        VBox middlePanel = new VBox(10, resultText,message, buttonsRow1, buttonsRow2);
         middlePanel.setAlignment(Pos.CENTER);
 
         sidePanel.setCenter(middlePanel);
@@ -276,14 +304,16 @@ public class GameScene extends Scene {
                 game.stopTimers();
                 switch (game.getResult()) {
                     case DRAW:
-                        message.setText("Draw!");
+                        resultText.setText("Draw!");
                         break;
                     case WHITE_WIN:
-                        message.setText("White won!");
+                        resultText.setText("White won!");
                         break;
                     case BLACK_WIN:
-                        message.setText("Black won!");
+                        resultText.setText("Black won!");
                         break;
+                    default:
+                        message.setText("");
                 }
                 game.appendState();
                 boardController.removeListeners();
@@ -354,6 +384,7 @@ public class GameScene extends Scene {
 
     private void enterViewMode() {
         viewMode = true;
+        resignButton.setDisable(true);
         backButton.setDisable(false);
         forwardButton.setDisable(false);
         historyPosition = game.getHistory().size()-1;
