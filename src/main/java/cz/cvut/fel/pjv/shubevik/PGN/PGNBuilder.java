@@ -1,11 +1,11 @@
 package cz.cvut.fel.pjv.shubevik.PGN;
 
-import cz.cvut.fel.pjv.shubevik.board.Board;
-import cz.cvut.fel.pjv.shubevik.board.Tile;
+import cz.cvut.fel.pjv.shubevik.game.Board;
+import cz.cvut.fel.pjv.shubevik.game.Tile;
 import cz.cvut.fel.pjv.shubevik.game.Game;
 import cz.cvut.fel.pjv.shubevik.game.PColor;
-import cz.cvut.fel.pjv.shubevik.moves.Move;
-import cz.cvut.fel.pjv.shubevik.pieces.Pawn;
+import cz.cvut.fel.pjv.shubevik.game.moves.Move;
+import cz.cvut.fel.pjv.shubevik.game.pieces.Pawn;
 
 import java.time.LocalDate;
 import java.util.List;

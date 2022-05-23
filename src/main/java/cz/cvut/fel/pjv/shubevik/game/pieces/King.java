@@ -1,8 +1,8 @@
-package cz.cvut.fel.pjv.shubevik.pieces;
+package cz.cvut.fel.pjv.shubevik.game.pieces;
 
 import cz.cvut.fel.pjv.shubevik.game.PColor;
 import cz.cvut.fel.pjv.shubevik.game.Game;
-import cz.cvut.fel.pjv.shubevik.moves.Move;
+import cz.cvut.fel.pjv.shubevik.game.moves.Move;
 
 public class King extends Piece {
 

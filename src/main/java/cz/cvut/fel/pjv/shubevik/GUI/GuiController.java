@@ -2,9 +2,9 @@ package cz.cvut.fel.pjv.shubevik.GUI;
 
 import cz.cvut.fel.pjv.shubevik.game.Game;
 import cz.cvut.fel.pjv.shubevik.game.PColor;
-import cz.cvut.fel.pjv.shubevik.pieces.*;
-import cz.cvut.fel.pjv.shubevik.players.Player;
-import cz.cvut.fel.pjv.shubevik.players.PlayerType;
+import cz.cvut.fel.pjv.shubevik.game.pieces.*;
+import cz.cvut.fel.pjv.shubevik.game.players.Player;
+import cz.cvut.fel.pjv.shubevik.game.players.PlayerType;
 import javafx.application.Application;
 
 import javafx.geometry.Insets;

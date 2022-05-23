@@ -1,10 +1,9 @@
-package cz.cvut.fel.pjv.shubevik.board;
+package cz.cvut.fel.pjv.shubevik.game;
 
 
 import cz.cvut.fel.pjv.shubevik.GUI.GuiController;
-import cz.cvut.fel.pjv.shubevik.game.PColor;
-import cz.cvut.fel.pjv.shubevik.moves.Move;
-import cz.cvut.fel.pjv.shubevik.pieces.*;
+import cz.cvut.fel.pjv.shubevik.game.moves.Move;
+import cz.cvut.fel.pjv.shubevik.game.pieces.*;
 
 public class Board {
 

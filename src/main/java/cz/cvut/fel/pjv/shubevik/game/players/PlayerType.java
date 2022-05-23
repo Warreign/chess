@@ -1,4 +1,4 @@
-package cz.cvut.fel.pjv.shubevik.players;
+package cz.cvut.fel.pjv.shubevik.game.players;
 
 public enum PlayerType {
     HUMAN,

@@ -1,4 +1,4 @@
-package cz.cvut.fel.pjv.shubevik.players;
+package cz.cvut.fel.pjv.shubevik.game.players;
 
 import cz.cvut.fel.pjv.shubevik.GUI.Timer;
 import cz.cvut.fel.pjv.shubevik.game.PColor;

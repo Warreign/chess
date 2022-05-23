@@ -1,8 +1,8 @@
-package cz.cvut.fel.pjv.shubevik.moves;
+package cz.cvut.fel.pjv.shubevik.game.moves;
 
-import cz.cvut.fel.pjv.shubevik.board.Tile;
+import cz.cvut.fel.pjv.shubevik.game.Tile;
 import cz.cvut.fel.pjv.shubevik.game.PColor;
-import cz.cvut.fel.pjv.shubevik.pieces.Piece;
+import cz.cvut.fel.pjv.shubevik.game.pieces.Piece;
 
 public class Move {
 

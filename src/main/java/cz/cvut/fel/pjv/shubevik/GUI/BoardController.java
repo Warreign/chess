@@ -3,10 +3,10 @@ package cz.cvut.fel.pjv.shubevik.GUI;
 import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.HIGHLIGHTED_TILE;
 import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.PIECE_MAP;
 
-import cz.cvut.fel.pjv.shubevik.board.Board;
-import cz.cvut.fel.pjv.shubevik.board.Tile;
+import cz.cvut.fel.pjv.shubevik.game.Board;
+import cz.cvut.fel.pjv.shubevik.game.Tile;
 import cz.cvut.fel.pjv.shubevik.game.Game;
-import cz.cvut.fel.pjv.shubevik.moves.Move;
+import cz.cvut.fel.pjv.shubevik.game.moves.Move;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;

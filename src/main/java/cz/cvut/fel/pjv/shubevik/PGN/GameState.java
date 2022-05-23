@@ -1,10 +1,9 @@
 package cz.cvut.fel.pjv.shubevik.PGN;
 
-import cz.cvut.fel.pjv.shubevik.board.Board;
-import cz.cvut.fel.pjv.shubevik.game.Result;
-import cz.cvut.fel.pjv.shubevik.moves.Move;
-import cz.cvut.fel.pjv.shubevik.moves.MoveType;
-import cz.cvut.fel.pjv.shubevik.pieces.Piece;
+import cz.cvut.fel.pjv.shubevik.game.Board;
+import cz.cvut.fel.pjv.shubevik.game.moves.Move;
+import cz.cvut.fel.pjv.shubevik.game.moves.MoveType;
+import cz.cvut.fel.pjv.shubevik.game.pieces.Piece;
 
 import java.util.List;
 

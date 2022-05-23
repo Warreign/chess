@@ -1,10 +1,9 @@
-package cz.cvut.fel.pjv.shubevik.board;
+package cz.cvut.fel.pjv.shubevik.game;
 
 import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.MARKERS_CHAR;
 import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.MARKERS_NUM;
 
-import cz.cvut.fel.pjv.shubevik.game.PColor;
-import cz.cvut.fel.pjv.shubevik.pieces.Piece;
+import cz.cvut.fel.pjv.shubevik.game.pieces.Piece;
 
 public class Tile {
     public final int x;

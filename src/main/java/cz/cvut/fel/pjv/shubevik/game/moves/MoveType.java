@@ -1,4 +1,4 @@
-package cz.cvut.fel.pjv.shubevik.moves;
+package cz.cvut.fel.pjv.shubevik.game.moves;
 
 public enum MoveType {
     PROMOTION_QUEEN,

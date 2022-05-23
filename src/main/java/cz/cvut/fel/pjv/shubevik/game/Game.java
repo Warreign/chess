@@ -1,14 +1,12 @@
 package cz.cvut.fel.pjv.shubevik.game;
 
 import cz.cvut.fel.pjv.shubevik.PGN.GameState;
-import cz.cvut.fel.pjv.shubevik.board.Board;
-import cz.cvut.fel.pjv.shubevik.board.Tile;
-import cz.cvut.fel.pjv.shubevik.moves.Move;
-import cz.cvut.fel.pjv.shubevik.moves.MoveType;
-import cz.cvut.fel.pjv.shubevik.moves.SpecialMove;
-import cz.cvut.fel.pjv.shubevik.pieces.*;
-import cz.cvut.fel.pjv.shubevik.players.Player;
-import cz.cvut.fel.pjv.shubevik.players.PlayerType;
+import cz.cvut.fel.pjv.shubevik.game.moves.Move;
+import cz.cvut.fel.pjv.shubevik.game.moves.MoveType;
+import cz.cvut.fel.pjv.shubevik.game.moves.SpecialMove;
+import cz.cvut.fel.pjv.shubevik.game.pieces.*;
+import cz.cvut.fel.pjv.shubevik.game.players.Player;
+import cz.cvut.fel.pjv.shubevik.game.players.PlayerType;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
