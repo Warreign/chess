@@ -1,5 +1,6 @@
 package cz.cvut.fel.pjv.shubevik.GUI;
 
+import cz.cvut.fel.pjv.shubevik.PGN.PGNBuilder;
 import cz.cvut.fel.pjv.shubevik.game.Game;
 import cz.cvut.fel.pjv.shubevik.game.PColor;
 import cz.cvut.fel.pjv.shubevik.game.pieces.*;
@@ -7,6 +8,7 @@ import cz.cvut.fel.pjv.shubevik.game.players.Player;
 import cz.cvut.fel.pjv.shubevik.game.players.PlayerType;
 import javafx.application.Application;
 
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
@@ -90,7 +92,6 @@ public class GuiController extends Application {
     public void start(Stage stage) {
         this.stage = stage;
         menuScene = new MenuScene(this,900, 600);
-        freeEdit = true;
 
         stage.setTitle("Chess");
         stage.getIcons().add(GAME_ICON);
@@ -103,7 +104,11 @@ public class GuiController extends Application {
         stage.setMinHeight(600);
 
         stage.show();
-        startGame("James", "Connor", PColor.WHITE, PColor.BLACK, true, true, 0);
+
+//        PGNBuilder.PGNtoGame(PGNBuilder.s);
+//        Platform.exit();
+
+//        startGame("James", "Connor", PColor.WHITE, PColor.BLACK, true, true, 0);
     }
 
     public static void main(String[] args) {
@@ -112,15 +117,15 @@ public class GuiController extends Application {
 
     public void openMenu() {
         if (!(stage.getScene() instanceof MenuScene)) {
+            freeEdit = true;
             stage.setScene(menuScene);
+            gameScene = null;
+            game = null;
         }
     }
 
-    public void startGame(String name1, String name2, PColor color1, PColor color2, boolean ai1, boolean ai2, int time) {
-        Player p1 = new Player(name1, color1, time != 0 ? new Timer(time) : null, ai1 ? PlayerType.RANDOM : PlayerType.HUMAN);
-        Player p2 = new Player(name2, color2, time != 0 ? new Timer(time) : null, ai2 ? PlayerType.RANDOM : PlayerType.HUMAN);
-
-        game = new Game(p1, p2, time != 0);
+    public void startGame(Game game) {
+        this.game = game;
         gameScene = new GameScene(this);
         stage.setScene(gameScene);
     }

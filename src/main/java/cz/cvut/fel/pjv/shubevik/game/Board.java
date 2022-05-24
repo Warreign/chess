@@ -1,5 +1,7 @@
 package cz.cvut.fel.pjv.shubevik.game;
 
+import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.MARKERS_CHAR;
+import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.MARKERS_NUM;
 
 import cz.cvut.fel.pjv.shubevik.GUI.GuiController;
 import cz.cvut.fel.pjv.shubevik.game.moves.Move;
@@ -13,19 +15,21 @@ public class Board {
 
     public static Piece genPiece(int x, int y) {
         if (y == 4 && x == 0) return new King(PColor.WHITE);
-//        if (y == 3 && x == 0) return new Queen(PColor.WHITE);
-//        if ((y == 2 || y == 5) && x == 0) return new Bishop(PColor.WHITE);
-//        if ((y == 1 || y == 6) && x == 0) return new Knight(PColor.WHITE);
-//        if ((y == 0 || y == 7) && x == 0) return new Rook(PColor.WHITE);
-//        if (x == 1) return new Pawn(PColor.WHITE);
+        if (y == 3 && x == 0) return new Queen(PColor.WHITE);
+        if ((y == 2 || y == 5) && x == 0) return new Bishop(PColor.WHITE);
+        if ((y == 1 || y == 6) && x == 0) return new Knight(PColor.WHITE);
+        if ((y == 0 || y == 7) && x == 0) return new Rook(PColor.WHITE);
+        if (x == 1) return new Pawn(PColor.WHITE);
 //
         if (y == 4 && x == 7) return new King(PColor.BLACK);
-//        if (y == 3 && x == 7) return new Queen(PColor.BLACK);
-//        if ((y == 2 || y == 5) && x == 7) return new Bishop(PColor.BLACK);
-//        if ((y == 1 || y == 6) && x == 7) return new Knight(PColor.BLACK);
-//        if ((y == 0 || y == 7) && x == 7) return new Rook(PColor.BLACK);
-//        if (x == 6) return new Pawn(PColor.BLACK);
+        if (y == 3 && x == 7) return new Queen(PColor.BLACK);
+        if ((y == 2 || y == 5) && x == 7) return new Bishop(PColor.BLACK);
+        if ((y == 1 || y == 6) && x == 7) return new Knight(PColor.BLACK);
+        if ((y == 0 || y == 7) && x == 7) return new Rook(PColor.BLACK);
+        if (x == 6) return new Pawn(PColor.BLACK);
         if (x == 1 && y == 0) return new Pawn(PColor.BLACK);
+
+//        if ( (x == 3 || x == 5) && y == 3) return new Knight(PColor.WHITE);
 
 
 
@@ -53,6 +57,12 @@ public class Board {
     }
     public Tile getTile(int x, int y) {
         return grid[x][y];
+    }
+
+    public Tile getTile(String notation) {
+        int x = MARKERS_NUM.indexOf(String.valueOf(notation.toCharArray()[1]));
+        int y = MARKERS_CHAR.indexOf(String.valueOf(notation.toCharArray()[0]));
+        return getTile(x, y);
     }
 
     public Piece getPiece(int x, int y) { return grid[x][y].getPiece(); }

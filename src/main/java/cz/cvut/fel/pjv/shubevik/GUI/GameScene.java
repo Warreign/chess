@@ -69,6 +69,7 @@ public class GameScene extends Scene {
     private Label resultText;
     private Button startButton;
     private Button resignButton;
+    private Button menuButton;
 
     private boolean viewMode;
     private int historyPosition;
@@ -119,7 +120,7 @@ public class GameScene extends Scene {
         }
 
         IntegerProperty fontSize = new SimpleIntegerProperty();
-        fontSize.bind(heightProperty().divide(40));
+        fontSize.bind(heightProperty().divide(50));
         board.styleProperty().bind(Bindings.concat("-fx-font-size: ", fontSize.asString(), ";",
                                                         "-fx-text-fill: red;",
                                                         "-fx-font-family: Impact;"));
@@ -180,17 +181,21 @@ public class GameScene extends Scene {
             sidePanel.setPadding(new Insets(t1.doubleValue() / 40));
         });
 
+        // Browse moves backwards
         backButton = new Button("<-");
         backButton.setDisable(true);
         backButton.setOnAction(e -> {
             if (historyPosition - 1 < 0) message.setText("First move");
-            else historyPosition--;
+            else {
+                historyPosition--;
+                message.setText("");
+            }
             displayState(game.getHistory().get(historyPosition));
         });
 
         toPgnButton = new Button("To PGN");
+        // Create new window with pgn data
         toPgnButton.setOnAction(e -> {
-//            System.out.println(PGNBuilder.gameToPGN(game));
             TextArea pgn = new TextArea();
             pgn.setWrapText(true);
             pgn.setText(PGNBuilder.gameToPGN(game));
@@ -201,15 +206,22 @@ public class GameScene extends Scene {
             Stage stage = new Stage();
             stage.initOwner(controller.getStage());
             stage.initModality(Modality.WINDOW_MODAL);
-            stage.setScene(new Scene(bp, 500, 300));
+            stage.setScene(new Scene(bp, 500, 250));
+            stage.setResizable(false);
+            stage.getIcons().add(GAME_ICON);
+            stage.setTitle("PGN Notation");
             stage.show();
         });
 
+        // Browse moves forwards
         forwardButton = new Button("->");
         forwardButton.setDisable(true);
         forwardButton.setOnAction(e -> {
             if (historyPosition + 1 == game.getHistory().size()) message.setText("Last move");
-            else historyPosition++;
+            else {
+                historyPosition++;
+                message.setText("");
+            }
             displayState(game.getHistory().get(historyPosition));
         });
         HBox buttonsRow1 = new HBox(10, backButton, toPgnButton, forwardButton);
@@ -221,7 +233,6 @@ public class GameScene extends Scene {
                 message.setText("Impossible position");
             }
             else {
-                message.setText("Game in process");
                 resignButton.setDisable(false);
                 addListeners();
                 controller.setFreeEdit(false);
@@ -236,28 +247,19 @@ public class GameScene extends Scene {
             PColor winner = Game.opposite(game.getCurrentColor());
             game.endGameWithResult(winner == PColor.WHITE ? Result.WHITE_WIN : Result.BLACK_WIN);
         });
-        HBox buttonsRow2 = new HBox(10, startButton, resignButton);
+
+        menuButton = new Button("Menu");
+        menuButton.setOnAction(e -> {
+            controller.openMenu();
+        });
+
+        HBox buttonsRow2 = new HBox(10, startButton, resignButton, menuButton);
         buttonsRow2.setAlignment(Pos.CENTER);
 
         VBox middlePanel = new VBox(10, resultText,message, buttonsRow1, buttonsRow2);
         middlePanel.setAlignment(Pos.CENTER);
 
         sidePanel.setCenter(middlePanel);
-//
-//        Button b = new Button("Kings");
-//        b.setOnAction(e -> {
-//            for (Tile t : game.findPiecesColor(PColor.WHITE)) {
-//                System.out.printf("White: %s %s\n", t.getPiece(), t);
-//            }
-//            for (Tile t : game.findPiecesColor(PColor.BLACK)) {
-//                System.out.printf("Black: %s %s\n", t.getPiece(), t);
-//            }
-//            System.out.printf("Last move: %s\n", game.getLastMove());
-//            System.out.printf("Current: %s\n", game.getCurrentColor());
-//            System.out.println(game.getBoard());
-//        });
-//        sidePanel.setRight(b);
-
         root.getChildren().add(sidePanel);
     }
 
@@ -368,7 +370,6 @@ public class GameScene extends Scene {
     private void setPromPiece(Piece p, boolean user) {
         game.setPromPiece(p);
         boardController.updateBoard(null);
-        game.getSpecialMove().set(SpecialMove.NONE);
         if (user) {
             game.evaluateAndSwitch();
         }

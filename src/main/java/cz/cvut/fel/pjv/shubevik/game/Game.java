@@ -36,9 +36,11 @@ public class Game {
     private BooleanProperty gameOver;
     private ObjectProperty<SpecialMove> specialMove;
 
+    private boolean reconstructing;
+
     private int counter;
 
-    public Game(Player p1, Player p2, boolean clock) {
+    public Game(Player p1, Player p2, boolean reconstructing) {
         takenPieces = FXCollections.observableList(new ArrayList<>());
         history = FXCollections.observableList(new ArrayList<>());
 
@@ -87,6 +89,7 @@ public class Game {
             evaluateAndSwitch();
             return true;
         }
+//        System.out.println("Wrong move");
         return false;
     }
 
@@ -271,7 +274,8 @@ public class Game {
     }
 
     public void setPromPiece(Piece piece) {
-        System.out.println(getLastMove());
+        getSpecialMove().set(SpecialMove.NONE);
+        getLastMove().setPromoting(piece.getClass());
         getLastMove().setType(MoveType.values()[Arrays.asList(Queen.class, Rook.class, Knight.class, Bishop.class).indexOf(piece.getClass())]);
         getLastMove().getEnd().setPiece(piece);
     }
@@ -392,12 +396,15 @@ public class Game {
     }
 
     public void appendState() {
-//        System.out.println(getLastMove()
-        history.add(new GameState(board.getCopy(),
-                copyTakenPieces(),
-                getLastMove() != null ? getLastMove().getCopy() : null,
-                checkOpponent(getCurrentColor()),
-                isCheckmateOpponent(getCurrentColor())));
+        if (getLastState().getMove() == null ||
+                (!getLastState().getMove().equals(getLastMove()))) {
+
+            history.add(new GameState(board.getCopy(),
+                    copyTakenPieces(),
+                    getLastMove() != null ? getLastMove().getCopy() : null,
+                    checkOpponent(getCurrentColor()),
+                    isCheckmateOpponent(getCurrentColor())));
+        }
     }
 
     private List<Piece> copyTakenPieces() {
@@ -419,12 +426,20 @@ public class Game {
         return board.getTile(x, y);
     }
 
+    public Tile getTile(String notation) {
+        return board.getTile(notation);
+    }
+
     public Map<PColor, Player> getPlayers() {
         return players;
     }
 
     public ObservableList<GameState> getHistory() {
         return history;
+    }
+
+    public GameState getLastState() {
+        return history.size() != 0 ? history.get(history.size()-1) : null;
     }
 
     public Move getLastMove() {
@@ -441,6 +456,10 @@ public class Game {
 
     public Result getResult() {
         return result;
+    }
+
+    public void setResult(Result result) {
+        this.result = result;
     }
 
     public ObservableList<Piece> getTaken() {

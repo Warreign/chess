@@ -1,7 +1,10 @@
 package cz.cvut.fel.pjv.shubevik.GUI;
 
+import cz.cvut.fel.pjv.shubevik.PGN.PGNBuilder;
 import cz.cvut.fel.pjv.shubevik.game.Game;
 import cz.cvut.fel.pjv.shubevik.game.PColor;
+import cz.cvut.fel.pjv.shubevik.game.players.Player;
+import cz.cvut.fel.pjv.shubevik.game.players.PlayerType;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -24,6 +27,7 @@ import javafx.stage.Stage;
 import java.util.Arrays;
 
 import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.BACKGROUND_IMAGE;
+import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.GAME_ICON;
 
 public class MenuScene extends Scene {
 
@@ -32,6 +36,7 @@ public class MenuScene extends Scene {
     private GuiController controller;
     private BorderPane root;
     private Stage settingsStage;
+    private Stage PGNStage;
 
     // Game settings
     private TextField nameP1;
@@ -51,6 +56,7 @@ public class MenuScene extends Scene {
         this.controller = controller;
         init();
         initSettingsStage();
+        initPGNStage();
     }
 
     private void init() {
@@ -88,9 +94,10 @@ public class MenuScene extends Scene {
         playButton.prefHeightProperty().bind(buttons.heightProperty().divide(3));
 
             // Editor mode
-        Button editButton = new Button("Editor Mode");
-        editButton.maxWidthProperty().bind(buttons.widthProperty());
-        editButton.prefHeightProperty().bind(buttons.heightProperty().divide(3));
+        Button fromPGNButton = new Button("From PGN");
+        fromPGNButton.maxWidthProperty().bind(buttons.widthProperty());
+        fromPGNButton.prefHeightProperty().bind(buttons.heightProperty().divide(3));
+        fromPGNButton.setOnAction(e -> PGNStage.show());
 
             // Exit button
         Button quitButton = new Button("Quit");
@@ -98,7 +105,7 @@ public class MenuScene extends Scene {
         quitButton.maxWidthProperty().bind(buttons.widthProperty());
         quitButton.prefHeightProperty().bind(buttons.heightProperty().divide(3));
 
-        buttons.getChildren().addAll(playButton,editButton,quitButton);
+        buttons.getChildren().addAll(playButton,fromPGNButton,quitButton);
     }
 
     private EventHandler<ActionEvent> playHandler = e -> {
@@ -106,34 +113,50 @@ public class MenuScene extends Scene {
         int time = timed.isSelected() ?
                 Integer.parseUnsignedInt(timeHours.getText()) * 3600 + Integer.parseUnsignedInt(timeMinutes.getText()) * 60 :
                 0;
-        controller.startGame(nameP1.getText(),
-                nameP2.getText(),
+        Player p1 = new Player(nameP1.getText(),
                 colorP1.getValue(),
+                time != 0 ? new Timer(time) : null,
+                aiP1.isSelected() ? PlayerType.RANDOM : PlayerType.HUMAN);
+
+        Player p2 = new Player(nameP2.getText(),
                 colorP2.getValue(),
-                aiP1.isSelected(),
-                aiP2.isSelected(),
-                time);
+                time != 0 ? new Timer(time) : null,
+                aiP2.isSelected() ? PlayerType.RANDOM : PlayerType.HUMAN);
+
+        Game game = new Game(p1, p2, false);
+        controller.startGame(game);
         settingsStage.close();
     };
 
+    // Check chosen hame parameters
     private boolean checkParameters() {
-        if (colorP1.getValue() == null || colorP2.getValue() == null || colorP1.getValue() == colorP2.getValue()) {
+        if (colorP1.getValue() == null) {
             colorP1.requestFocus();
             return false;
         }
-        if (nameP1.getText().isEmpty() || nameP2.getText().isEmpty()) {
+        if (colorP2.getValue() == null) {
+            colorP2.requestFocus();
+            return false;
+        }
+        if (nameP1.getText().isEmpty()) {
             nameP1.requestFocus();
+            return false;
+        }
+        if (nameP2.getText().isEmpty()) {
+            nameP2.requestFocus();
             return false;
         }
         if (timed.isSelected()) {
             try {
                 Integer.parseUnsignedInt(timeHours.getText());
-                Integer.parseUnsignedInt(timeMinutes.getText());
-//                if (
-//                                < 0 || ) {
-//                    return false;
-//                }
             } catch (NumberFormatException e) {
+                timeHours.requestFocus();
+                return false;
+            }
+            try {
+                Integer.parseUnsignedInt(timeMinutes.getText());
+            } catch (NumberFormatException e) {
+                timeMinutes.requestFocus();
                 return false;
             }
         }
@@ -154,21 +177,26 @@ public class MenuScene extends Scene {
         settings.setPrefWidth(settingsStage.getWidth());
 
         // Settings
-            // Players
+
+        // Players
+        // AI player (currently not AI, but random)
         aiP1 = new CheckBox("AI");
-        aiP1.selectedProperty().addListener(((observableValue, aBoolean, t1) -> {
-            if (t1) aiP2.setSelected(false);
-        }));
         aiP2 = new CheckBox("AI");
-        aiP2.selectedProperty().addListener(((observableValue, aBoolean, t1) -> {
-            if (t1) aiP1.setSelected(false);
-        }));
+        // Dont use time when both AI
+        EventHandler<ActionEvent> AiCheckboxHandler = e -> {
+            timed.setSelected(!(aiP1.isSelected() && aiP2.isSelected()) && timed.isSelected());
+            timed.setDisable(aiP1.isSelected() && aiP2.isSelected());
+        };
+        aiP1.setOnAction(AiCheckboxHandler);
+        aiP2.setOnAction(AiCheckboxHandler);
+        // Name fields
         nameP1 = new TextField();
         nameP2 = new TextField();
         nameP1.setPromptText("Player 1");
         nameP2.setPromptText("Player 2");
         nameP1.prefWidthProperty().bind(settingsStage.widthProperty().multiply(0.4));
         nameP2.prefWidthProperty().bind(settingsStage.widthProperty().multiply(0.4));
+        // Limit length of text field
         nameP1.lengthProperty().addListener((observableValue, number, t1) -> {
             if (t1.intValue()>number.intValue() && nameP1.getLength() >= MAX_NAME_SIZE) {
                 nameP1.setText(nameP1.getText().substring(0,MAX_NAME_SIZE));
@@ -179,12 +207,15 @@ public class MenuScene extends Scene {
                 nameP2.setText(nameP2.getText().substring(0,MAX_NAME_SIZE));
             }
         });
+        // Player colors
         colorP1 = new ComboBox<>(FXCollections.observableList(Arrays.asList(PColor.WHITE, PColor.BLACK)));
         colorP2 = new ComboBox<>(FXCollections.observableList(Arrays.asList(PColor.WHITE, PColor.BLACK)));
         colorP1.prefWidthProperty().bind(settingsStage.widthProperty().multiply(0.25));
         colorP2.prefWidthProperty().bind(settingsStage.widthProperty().multiply(0.25));
         colorP1.setPromptText("Color");
         colorP2.setPromptText("Color");
+
+        // Ensure different colors
         colorP1.getSelectionModel().selectedItemProperty().addListener(((observableValue, color, t1) -> {
             if (colorP1.getSelectionModel().getSelectedItem() == colorP2.getSelectionModel().getSelectedItem()) {
                 colorP2.getSelectionModel().select(Game.opposite(t1));
@@ -196,12 +227,13 @@ public class MenuScene extends Scene {
             }
         }));
 
+
         HBox p1 = new HBox(10, aiP1, nameP1, colorP1);
         HBox p2 = new HBox(10, aiP2, nameP2, colorP2);
         p1.setAlignment(Pos.CENTER);
         p2.setAlignment(Pos.CENTER);
 
-            // Time option
+        // Time option
         timed = new CheckBox("Time");
         timeHours = new TextField();
         timeHours.setPromptText("Hours");
@@ -212,22 +244,17 @@ public class MenuScene extends Scene {
         timeMinutes.setDisable(true);
         timeMinutes.setMaxWidth(getWidth()/14);
 
+        // Enable/Disable time fields
         timed.selectedProperty().addListener((observableValue, oldValue, newValue) -> {
-            if (newValue) {
-                timeHours.setDisable(false);
-                timeMinutes.setDisable(false);
-            }
-            else {
-                timeHours.setDisable(true);
-                timeMinutes.setDisable(true);
-            }
+            timeHours.setDisable(!timed.isSelected());
+            timeMinutes.setDisable(!timed.isSelected());
         });
 
         HBox timeChoice = new HBox(timed, timeHours, timeMinutes);
         timeChoice.setSpacing(20);
         timeChoice.setAlignment(Pos.CENTER);
 
-            // Buttons
+        // Buttons
         Button playButton = new Button("Play");
         playButton.setOnAction(playHandler);
 
@@ -240,11 +267,47 @@ public class MenuScene extends Scene {
         actionButtons.setAlignment(Pos.CENTER);
         actionButtons.getChildren().addAll(cancelButton, playButton);
 
-            // Title
+        // Title
         Label title = new Label("Game settings");
         title.setTextAlignment(TextAlignment.CENTER);
         title.setAlignment(Pos.CENTER);
 
         settings.getChildren().addAll(title, p1, p2, timeChoice, actionButtons);
+    }
+
+    private void initPGNStage() {
+        PGNStage = new Stage();
+        PGNStage.setResizable(false);
+        PGNStage.initOwner(controller.getStage());
+        PGNStage.initModality(Modality.WINDOW_MODAL);
+        PGNStage.getIcons().add(GAME_ICON);
+        PGNStage.setTitle("Start game from PGN");
+
+        VBox root = new VBox(10);
+        root.setPadding(new Insets(10));
+        PGNStage.setScene(new Scene(root, 500, 300));
+
+        TextArea pgnText = new TextArea();
+        pgnText.setPromptText("Insert PGN here");
+        pgnText.setWrapText(true);
+        pgnText.prefWidthProperty().bind(PGNStage.widthProperty());
+        pgnText.prefHeightProperty().bind(PGNStage.heightProperty().multiply(0.8));
+
+        Button playButton = new Button("Play");
+        playButton.setOnAction(e -> {
+            Game game = PGNBuilder.PGNtoGame(pgnText.getText());
+            if (game != null) {
+                controller.startGame(game);
+                PGNStage.close();
+            }
+        });
+        Button cancelButton = new Button("Cancel");
+        cancelButton.setOnAction(e -> PGNStage.close());
+        cancelButton.setCancelButton(true);
+
+        HBox buttons = new HBox(20, cancelButton, playButton);
+        buttons.setAlignment(Pos.CENTER);
+
+        root.getChildren().addAll(pgnText, buttons);
     }
 }

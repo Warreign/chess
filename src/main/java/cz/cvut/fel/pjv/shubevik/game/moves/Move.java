@@ -10,6 +10,7 @@ public class Move {
     private Piece piece;
     private Piece capture;
     private MoveType type;
+    private Class<? extends Piece> promotingTo;
 
     public Move(Tile s, Tile e) {
         this.start = s;
@@ -18,12 +19,13 @@ public class Move {
         this.capture = e != null ? e.getPiece() : null;
     }
 
-    public Move(Tile s, Tile e, Piece p, Piece c, MoveType t) {
+    public Move(Tile s, Tile e, Piece p, Piece c, MoveType t, Class<? extends Piece> pr) {
         start = s;
         end = e;
         piece = p;
         capture = c;
         type = t;
+        promotingTo = pr;
     }
 
     public boolean checkMove() {
@@ -61,7 +63,7 @@ public class Move {
     }
 
     public Move getCopy() {
-        return new Move(start, end, piece, capture, type);
+        return new Move(start, end, piece, capture, type, promotingTo);
     }
 
     public Piece getPiece() {
@@ -70,6 +72,14 @@ public class Move {
 
     public Piece getCapture() {
         return capture;
+    }
+
+    public Class<? extends Piece> getPromotion() {
+        return promotingTo;
+    }
+
+    public void setPromoting(Class<? extends Piece> c) {
+        promotingTo = c;
     }
 
     public boolean isCapture() {
