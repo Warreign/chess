@@ -36,12 +36,13 @@ public class Game {
     private Move lastMove;
 
     private boolean start;
+    private boolean reconstruct;
 
     private int fullMoves;
     private BooleanProperty gameOver;
     private ObjectProperty<SpecialMove> specialMove;
 
-    public Game(Player p1, Player p2, Board board) {
+    public Game(Player p1, Player p2, Board board, boolean reconstruct) {
         takenPieces = FXCollections.observableList(new ArrayList<>());
         history = FXCollections.observableList(new ArrayList<>());
 
@@ -56,6 +57,7 @@ public class Game {
         currentPlayer = new SimpleObjectProperty<>();
 
         fullMoves = 0;
+        this.reconstruct = reconstruct;
 
         gameOver = new SimpleBooleanProperty(false);
         specialMove = new SimpleObjectProperty<>();
@@ -85,11 +87,11 @@ public class Game {
         if (isMoveValid(move)) {
             lastMove = move;
             makeMove(move);
-            logger.log(Level.INFO, "Valid move for " + getCurrentColor() + " " + move);
+            if (!reconstruct) logger.log(Level.INFO, "Valid move for " + getCurrentColor() + " " + move);
             evaluateAndSwitch();
             return true;
         }
-        logger.log(Level.INFO, "Invalid move for " + getCurrentColor() + " " + move);
+        if (!reconstruct) logger.log(Level.INFO, "Invalid move for " + getCurrentColor() + " " + move);
         return false;
     }
 
@@ -409,6 +411,7 @@ public class Game {
     }
 
     public void endGameWithResult(Result result) {
+        logger.info("Game ended, " + result.toString().replaceAll("_", " ").toLowerCase());
         this.result = result;
         gameOver.set(result != Result.IN_PROCESS);
         stopTimers();
@@ -504,6 +507,10 @@ public class Game {
 
     public void startCurrentTimer() {
         getCurrentPlayer().startTimer();
+    }
+
+    public void setReconstruct(boolean val) {
+        reconstruct = val;
     }
 }
 

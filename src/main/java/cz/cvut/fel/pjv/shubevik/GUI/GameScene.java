@@ -1,5 +1,7 @@
 package cz.cvut.fel.pjv.shubevik.GUI;
 
+import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.logger;
+
 import cz.cvut.fel.pjv.shubevik.PGN.GameState;
 import cz.cvut.fel.pjv.shubevik.PGN.PGNBuilder;
 import cz.cvut.fel.pjv.shubevik.game.Tile;
@@ -23,12 +25,22 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.*;
@@ -51,6 +63,12 @@ public class GameScene extends Scene {
     private Scene whiteProm;
     private Scene blackProm;
 
+    private Stage pgnStage;
+    private TextArea pgnText;
+
+    private Stage fileStage;
+    private File chosenFile;
+
     private GridPane board;
     private TileView[][] tiles;
     private Map<TileView, Tile> tileMap;
@@ -70,7 +88,6 @@ public class GameScene extends Scene {
     private Button resignButton;
     private Button menuButton;
 
-    private boolean viewMode;
     private int historyPosition;
     private Button backButton;
     private Button forwardButton;
@@ -91,6 +108,8 @@ public class GameScene extends Scene {
         initPanel();
         initListeners();
         initPromStage();
+        initPGNStage();
+        initFileStage();
         boardController = new BoardController(controller, tiles, tileMap);
         boardController.updateBoard(null);
 
@@ -197,25 +216,12 @@ public class GameScene extends Scene {
             displayState(game.getHistory().get(historyPosition));
         });
 
+        // Open window with current game PGN
         toPgnButton = new Button("To PGN");
         toPgnButton.setDisable(true);
-        // Create new window with pgn data
         toPgnButton.setOnAction(e -> {
-            TextArea pgn = new TextArea();
-            pgn.setWrapText(true);
-            pgn.setText(PGNBuilder.gameToPGN(game));
-            pgn.setEditable(false);
-            BorderPane bp = new BorderPane();
-            bp.setPadding(new Insets(5));
-            bp.setCenter(pgn);
-            Stage stage = new Stage();
-            stage.initOwner(controller.getStage());
-            stage.initModality(Modality.WINDOW_MODAL);
-            stage.setScene(new Scene(bp, 500, 250));
-            stage.setResizable(false);
-            stage.getIcons().add(GAME_ICON);
-            stage.setTitle("PGN Notation");
-            stage.show();
+            pgnText.setText(PGNBuilder.gameToPGN(game));
+            pgnStage.show();
         });
 
         // Browse moves forwards
@@ -346,6 +352,95 @@ public class GameScene extends Scene {
         promStage.setOnCloseRequest(e -> setPromPiece(new Queen(game.getCurrentColor()), true));
     }
 
+    private void initPGNStage() {
+        VBox container = new VBox(10);
+        container.setAlignment(Pos.CENTER);
+        container.setPadding(new Insets(10));
+
+        pgnStage = new Stage();
+        pgnStage.initOwner(controller.getStage());
+        pgnStage.initModality(Modality.WINDOW_MODAL);
+        pgnStage.setScene(new Scene(container, 500, 300));
+        pgnStage.setResizable(false);
+        pgnStage.getIcons().add(GAME_ICON);
+        pgnStage.setTitle("PGN Notation");
+
+        pgnText = new TextArea();
+        pgnText.setWrapText(true);
+        pgnText.setEditable(false);
+        pgnText.prefHeightProperty().bind(pgnStage.heightProperty().multiply(0.85));
+
+        Button saveButton = new Button("Save");
+        saveButton.setOnAction(e1 -> {
+            fileStage.show();
+        });
+        Button closeButton = new Button("Close");
+        closeButton.setCancelButton(true);
+        closeButton.setOnAction(e -> pgnStage.close());
+        HBox buttonContainer = new HBox(10, closeButton, saveButton);
+        buttonContainer.setAlignment(Pos.CENTER);
+        container.getChildren().addAll(pgnText, buttonContainer);
+    }
+
+    private void initFileStage() {
+        VBox container = new VBox(10);
+        container.setAlignment(Pos.CENTER);
+        container.setPadding(new Insets(10));
+
+        fileStage = new Stage();
+        fileStage.initOwner(controller.getStage());
+        fileStage.initModality(Modality.WINDOW_MODAL);
+        fileStage.setScene(new Scene(container, 300, 120));
+        fileStage.setResizable(false);
+        fileStage.getIcons().add(GAME_ICON);
+        fileStage.setTitle("Save to file");
+
+        TextField fileName = new TextField();
+        fileName.setPromptText("Enter name");
+        TextField directoryName = new TextField();
+        directoryName.setPromptText("Directory path");
+        directoryName.setEditable(false);
+
+        Button directoryChange = new Button("Change");
+        directoryChange.setOnAction(e -> {
+            DirectoryChooser directoryChooser = new DirectoryChooser();
+            File selected = directoryChooser.showDialog(null);
+            if (selected != null) directoryName.setText(selected.getAbsolutePath());
+        });
+        Button save = new Button("Save");
+        save.setOnAction(e -> {
+            Path path = Paths.get(directoryName.getText(), fileName.getText() + ".pgn");
+            if (!Files.exists(path)) {
+                try {
+                    Files.createFile(path.toAbsolutePath());
+                    PrintWriter writer = new PrintWriter(path.toFile());
+                    writer.println(PGNBuilder.gameToPGN(game));
+                    writer.close();
+                    logger.info(String.format("Successfully saved to \"%s\"", path));
+                    fileStage.close();
+                } catch (IOException ex) {
+                    logger.warning(ex.getMessage());
+                }
+            }
+            else {
+                logger.info(String.format("File already exists: \"%s\"", path));
+            }
+        });
+        Button cancel = new Button("Cancel");
+        cancel.setCancelButton(true);
+        cancel.setOnAction(e -> {
+            fileStage.close();
+            fileName.clear();
+            directoryName.clear();
+        });
+        fileName.prefWidthProperty().bind(fileName.widthProperty());
+        directoryName.prefWidthProperty().bind(fileStage.widthProperty().subtract(directoryChange.widthProperty().multiply(2)));
+        HBox dirContainer = new HBox(10, directoryName, directoryChange);
+        HBox buttonContainer = new HBox(10, cancel, save);
+        buttonContainer.setAlignment(Pos.CENTER);
+        container.getChildren().addAll(fileName, dirContainer, buttonContainer);
+    }
+
     private void setPromPiece(Piece p, boolean user) {
         game.setPromPiece(p);
         boardController.updateBoard(null);
@@ -361,7 +456,6 @@ public class GameScene extends Scene {
     }
 
     private void enterViewMode() {
-        viewMode = true;
         resignButton.setDisable(true);
         startButton.setDisable(true);
         backButton.setDisable(false);

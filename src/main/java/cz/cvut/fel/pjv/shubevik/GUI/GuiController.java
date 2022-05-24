@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 
 public class GuiController extends Application {
@@ -82,6 +83,8 @@ public class GuiController extends Application {
         PIECE_MAP.put(Pawn.class, pawn);
     }
 
+    static Logger logger = Logger.getLogger(GuiController.class.getName());
+
     private Stage stage;
     private Scene menuScene;
     private Scene gameScene;
@@ -95,17 +98,14 @@ public class GuiController extends Application {
 
         stage.setTitle("Chess");
         stage.getIcons().add(GAME_ICON);
+        stage.setMaxHeight(Screen.getPrimary().getBounds().getHeight() * 0.97);
+        stage.minWidthProperty().bind(stage.heightProperty().multiply(1.5));
+//        stage.maxWidthProperty().bind(stage.heightProperty().multiply(16).divide(9));
+        stage.setMinHeight(600);
+        stage.show();
 
         openMenu();
 
-        stage.setMaxHeight(Screen.getPrimary().getBounds().getHeight());
-        stage.minWidthProperty().bind(stage.heightProperty().multiply(1.5));
-        stage.maxWidthProperty().bind(stage.heightProperty().multiply(1.5));
-        stage.setMinHeight(600);
-
-        stage.show();
-
-//        startGame("James", "Connor", PColor.WHITE, PColor.BLACK, true, true, 0);
     }
 
     public static void main(String[] args) {
@@ -129,10 +129,6 @@ public class GuiController extends Application {
 
     public Game getGame() {
         return game;
-    }
-
-    public Scene getMenu() {
-        return menuScene;
     }
 
     public Stage getStage() {

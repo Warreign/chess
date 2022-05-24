@@ -1,13 +1,13 @@
 package cz.cvut.fel.pjv.shubevik.GUI;
 
+import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.logger;
+
 import cz.cvut.fel.pjv.shubevik.PGN.PGNBuilder;
 import cz.cvut.fel.pjv.shubevik.game.Game;
 import cz.cvut.fel.pjv.shubevik.game.PColor;
 import cz.cvut.fel.pjv.shubevik.game.players.Player;
 import cz.cvut.fel.pjv.shubevik.game.players.PlayerType;
 import javafx.application.Platform;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -15,16 +15,19 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.image.Image;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontPosture;
 import javafx.scene.text.TextAlignment;
+import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Arrays;
+import java.util.Scanner;
 
 import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.BACKGROUND_IMAGE;
 import static cz.cvut.fel.pjv.shubevik.GUI.GuiController.GAME_ICON;
@@ -36,7 +39,7 @@ public class MenuScene extends Scene {
     private GuiController controller;
     private BorderPane root;
     private Stage settingsStage;
-    private Stage PGNStage;
+    private Stage pgnStage;
 
     // Game settings
     private TextField nameP1;
@@ -60,6 +63,7 @@ public class MenuScene extends Scene {
     }
 
     private void init() {
+
         // Set title
         Label title  = new Label("Chess");
         title.setFont(Font.font("Impact", FontPosture.REGULAR, 100));
@@ -97,7 +101,7 @@ public class MenuScene extends Scene {
         Button fromPGNButton = new Button("From PGN");
         fromPGNButton.maxWidthProperty().bind(buttons.widthProperty());
         fromPGNButton.prefHeightProperty().bind(buttons.heightProperty().divide(3));
-        fromPGNButton.setOnAction(e -> PGNStage.show());
+        fromPGNButton.setOnAction(e -> pgnStage.show());
 
             // Exit button
         Button quitButton = new Button("Quit");
@@ -123,7 +127,7 @@ public class MenuScene extends Scene {
                 time != 0 ? new Timer(time) : null,
                 aiP2.isSelected() ? PlayerType.RANDOM : PlayerType.HUMAN);
 
-        Game game = new Game(p1, p2, null);
+        Game game = new Game(p1, p2, null, false);
         controller.startGame(game);
         settingsStage.close();
     };
@@ -161,6 +165,17 @@ public class MenuScene extends Scene {
             }
         }
         return true;
+    }
+
+    private void startFromPGN(String PGN) {
+        Game game = PGNBuilder.PGNtoGame(PGN);
+        if (game != null) {
+            logger.info("Game successfully loaded");
+            controller.startGame(game);
+            pgnStage.close();
+        } else {
+            logger.warning("Error when parsing PGN");
+        }
     }
 
     private void initSettingsStage() {
@@ -276,36 +291,48 @@ public class MenuScene extends Scene {
     }
 
     private void initPGNStage() {
-        PGNStage = new Stage();
-        PGNStage.setResizable(false);
-        PGNStage.initOwner(controller.getStage());
-        PGNStage.initModality(Modality.WINDOW_MODAL);
-        PGNStage.getIcons().add(GAME_ICON);
-        PGNStage.setTitle("Start game from PGN");
+        pgnStage = new Stage();
+        pgnStage.setResizable(false);
+        pgnStage.initOwner(controller.getStage());
+        pgnStage.initModality(Modality.WINDOW_MODAL);
+        pgnStage.getIcons().add(GAME_ICON);
+        pgnStage.setTitle("Start game from PGN");
 
         VBox root = new VBox(10);
         root.setPadding(new Insets(10));
-        PGNStage.setScene(new Scene(root, 500, 300));
+        pgnStage.setScene(new Scene(root, 500, 300));
 
         TextArea pgnText = new TextArea();
         pgnText.setPromptText("Insert PGN here");
         pgnText.setWrapText(true);
-        pgnText.prefWidthProperty().bind(PGNStage.widthProperty());
-        pgnText.prefHeightProperty().bind(PGNStage.heightProperty().multiply(0.8));
+        pgnText.prefWidthProperty().bind(pgnStage.widthProperty());
+        pgnText.prefHeightProperty().bind(pgnStage.heightProperty().multiply(0.8));
 
-        Button playButton = new Button("Play");
-        playButton.setOnAction(e -> {
-            Game game = PGNBuilder.PGNtoGame(pgnText.getText());
-            if (game != null) {
-                controller.startGame(game);
-                PGNStage.close();
+        Button fromFileButton = new Button("From file");
+        fromFileButton.setOnAction(e -> {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Open PGN file");
+            File file = fileChooser.showOpenDialog(null);
+            if (file == null) return;
+
+            try {
+                Scanner scanner = new Scanner(file);
+                String pgn = scanner.useDelimiter("\\A").next();
+                scanner.close();
+                startFromPGN(pgn);
+            } catch (FileNotFoundException ex) {
+                logger.info(ex.getMessage());
+                throw new RuntimeException(ex);
             }
         });
+
+        Button playButton = new Button("Play");
+        playButton.setOnAction(e -> startFromPGN(pgnText.getText()));
         Button cancelButton = new Button("Cancel");
-        cancelButton.setOnAction(e -> PGNStage.close());
+        cancelButton.setOnAction(e -> pgnStage.close());
         cancelButton.setCancelButton(true);
 
-        HBox buttons = new HBox(20, cancelButton, playButton);
+        HBox buttons = new HBox(20, cancelButton, playButton, fromFileButton);
         buttons.setAlignment(Pos.CENTER);
 
         root.getChildren().addAll(pgnText, buttons);

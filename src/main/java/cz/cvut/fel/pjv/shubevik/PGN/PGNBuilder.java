@@ -38,12 +38,7 @@ public class PGNBuilder {
 
     public static Board stringToBoard(String str) {
         Board board = new Board(true);
-        List<String> pieceNotations = Arrays.asList(str.split("-"));
-//        List<String> pieceNotations = Pattern.compile("[bw][NBKQR]?[a-h][1-8]\\-").matcher(str)
-//                .results()
-//                .map(MatchResult::group)
-//                .map(String::strip)
-//                .collect(Collectors.toList());
+        String[] pieceNotations = str.split("-");
 
         for (String n : pieceNotations) {
             if (n.length() == 3) {
@@ -56,7 +51,7 @@ public class PGNBuilder {
                     board.setPiece(n.substring(2,4), p);
                 } catch (NoSuchMethodException | InvocationTargetException | InstantiationException |
                          IllegalAccessException e) {
-                    logger.log(Level.SEVERE, e.getMessage());
+                    logger.warning(e.getMessage());
                     throw new RuntimeException(e);
                 }
             }
@@ -165,8 +160,8 @@ public class PGNBuilder {
         String name2 = null;
         Result result = null;
         Board board = new Board(false);
-        PlayerType type1 = null;
-        PlayerType type2 = null;
+        PlayerType type1 = PlayerType.HUMAN;
+        PlayerType type2 = PlayerType.HUMAN;
         int time1 = 0;
         int time2 = 0;
 
@@ -235,12 +230,12 @@ public class PGNBuilder {
         // Moves
         Player p1 = new Player(name1, PColor.WHITE, null, type1);
         Player p2 = new Player(name2, PColor.BLACK, null, type2);
-        Game game = new Game(p1, p2, board);
+        Game game = new Game(p1, p2, board, true);
         game.begin();
 
         String moveRegex = "\\d+. \\[]";
         pgn = pgn.replaceAll("\\d+\\. ", "");
-        List<String> moveNotations = Pattern.compile("[a-zA-Z1-9+=\\-]+\\s").matcher(pgn).results().map(MatchResult::group).map(String::strip).collect(Collectors.toList());
+        List<String> moveNotations = Pattern.compile("[a-zA-Z][a-zA-Z1-9+=#\\-]+\\s").matcher(pgn).results().map(MatchResult::group).map(String::strip).collect(Collectors.toList());
 
         for (String n : moveNotations) {
             if (n.equals("O-O") || n.equals("0-0")) {
@@ -251,7 +246,6 @@ public class PGNBuilder {
                 if (!castling(game, false)) return null;
                 continue;
             }
-
             if (n.length() == 2 && wrong2Char(game, n)) return null;
             if (n.length() == 3 && wrong3Char(game, n)) return null;
             if (n.length() == 4 && wrong4Char(game, n)) return null;
@@ -261,6 +255,7 @@ public class PGNBuilder {
         }
 
         if (result != Result.IN_PROCESS) game.getGameOver().set(true);
+        game.setReconstruct(false);
         game.getPlayers().get(PColor.WHITE).setTimer(timer1);
         game.getPlayers().get(PColor.BLACK).setTimer(timer2);
         game.setResult(result);
@@ -309,7 +304,7 @@ public class PGNBuilder {
         try {
             return c.getConstructor(PColor.class).newInstance(game.getLastMove().getColor());
         } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException | InstantiationException e) {
-            logger.log(Level.SEVERE, e.getMessage());
+            logger.warning(e.getMessage());
             throw new RuntimeException(e);
         }
     }
@@ -318,7 +313,7 @@ public class PGNBuilder {
         try {
             return s.toCharArray()[i];
         } catch (IndexOutOfBoundsException e) {
-            logger.log(Level.SEVERE, e.getMessage());
+            logger.warning(e.getMessage());
             return ' ';
         }
     }
