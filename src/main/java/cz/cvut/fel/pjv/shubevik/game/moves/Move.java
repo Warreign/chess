@@ -74,6 +74,10 @@ public class Move {
         return capture;
     }
 
+    public void setCapture(Piece p) {
+        capture = p;
+    }
+
     public Class<? extends Piece> getPromotion() {
         return promotingTo;
     }

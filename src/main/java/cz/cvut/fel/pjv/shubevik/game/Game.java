@@ -99,8 +99,7 @@ public class Game {
             takenPieces.add(move.getCapture());
         }
         // Castling
-        if (move.getPiece() instanceof King &&
-                move.getPiece().yDiff(move) == 2) {
+        if (move.getPiece() instanceof King && move.getPiece().yDiff(move) == 2) {
             doCastling(move);
             if (move.getPiece().isRight(move)) {
                 move.setType(MoveType.CASTLING_KINGSIDE);

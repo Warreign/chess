@@ -105,9 +105,6 @@ public class GuiController extends Application {
 
         stage.show();
 
-//        PGNBuilder.PGNtoGame(PGNBuilder.s);
-//        Platform.exit();
-
 //        startGame("James", "Connor", PColor.WHITE, PColor.BLACK, true, true, 0);
     }
 
