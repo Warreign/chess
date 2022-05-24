@@ -55,7 +55,6 @@ public class GameScene extends Scene {
     private TileView[][] tiles;
     private Map<TileView, Tile> tileMap;
 
-
     private BorderPane sidePanel;
     private Label name1;
     private Label name2;
@@ -81,6 +80,7 @@ public class GameScene extends Scene {
         super(new Pane(), controller.getStage().getWidth(), controller.getStage().getHeight());
         root = (Pane) this.getRoot();
         this.controller = controller;
+
         this.game = controller.getGame();
 
         tileMap = new HashMap<>();
@@ -93,6 +93,8 @@ public class GameScene extends Scene {
         initPromStage();
         boardController = new BoardController(controller, tiles, tileMap);
         boardController.updateBoard(null);
+
+        handleResult(game.getGameOver().get());
     }
 
     private void initBoard() {
@@ -142,10 +144,10 @@ public class GameScene extends Scene {
         // Time labels
         time1 = new Label();
         time2 = new Label();
-        time1.setText(p1.getTimer() != null ? TimeListener.convert(p1.getTimer().getTime()) : "" );
-        time2.setText(p2.getTimer() != null ? TimeListener.convert(p2.getTimer().getTime()) : "" );
-        if (p1.getTimer() != null) new TimeListener(time1, p1.getTimer().getProperty());
-        if (p2.getTimer() != null) new TimeListener(time2, p2.getTimer().getProperty());
+        time1.setText(p1.isTimed() ? TimeListener.convert(p1.getTimer().getTime()) : "" );
+        time2.setText(p2.isTimed() ? TimeListener.convert(p2.getTimer().getTime()) : "" );
+        timeListener1 = p1.isTimed() ? new TimeListener(controller, time1, p1.getTimer().getProperty()) : null;
+        timeListener2 = p2.isTimed() ? new TimeListener(controller, time2, p2.getTimer().getProperty()) : null;
 
         // Name labels
         name1 = new Label(p1.getName());
@@ -162,6 +164,8 @@ public class GameScene extends Scene {
         VBox playerBottom = new VBox(10, taken1, time1, name1);
         playerTop.spacingProperty().bind(heightProperty().divide(100));
         playerBottom.spacingProperty().bind(heightProperty().divide(100));
+
+        for (Piece p : game.getTaken()) updateTakenPanel(p);
 
         sidePanel.setTop(playerTop);
         sidePanel.setBottom(playerBottom);
@@ -194,6 +198,7 @@ public class GameScene extends Scene {
         });
 
         toPgnButton = new Button("To PGN");
+        toPgnButton.setDisable(true);
         // Create new window with pgn data
         toPgnButton.setOnAction(e -> {
             TextArea pgn = new TextArea();
@@ -236,7 +241,9 @@ public class GameScene extends Scene {
                 resignButton.setDisable(false);
                 addListeners();
                 controller.setFreeEdit(false);
+                game.setStart(true);
                 game.begin();
+                toPgnButton.setDisable(false);
                 startButton.setDisable(true);
             }
         });
@@ -246,6 +253,7 @@ public class GameScene extends Scene {
         resignButton.setOnAction(e -> {
             PColor winner = Game.opposite(game.getCurrentColor());
             game.endGameWithResult(winner == PColor.WHITE ? Result.WHITE_WIN : Result.BLACK_WIN);
+            removeListeners();
         });
 
         menuButton = new Button("Menu");
@@ -284,41 +292,12 @@ public class GameScene extends Scene {
         takenPiecesListener = change -> {
             if (change.next() && change.wasAdded()) {
                 Piece p = change.getAddedSubList().get(0);
-                if (p.getColor() == PColor.BLACK) {
-                    ImageView container = new ImageView(PIECE_MAP.get(p.getClass()).get(p.getColor()));
-                    container.fitHeightProperty().bind(sidePanel.heightProperty().divide(20));
-                    container.fitWidthProperty().bind(sidePanel.heightProperty().divide(20));
-                    taken1.getChildren().add(container);
-                }
-                else { // WHITE
-                    ImageView container = new ImageView(PIECE_MAP.get(p.getClass()).get(p.getColor()));
-                    container.fitHeightProperty().bind(sidePanel.heightProperty().divide(20));
-                    container.fitWidthProperty().bind(sidePanel.heightProperty().divide(20));
-                    taken2.getChildren().add(container);
-                }
+                updateTakenPanel(p);
             }
         };
 
         gameOverListener = (observableValue, aBoolean, t1) -> {
-            if (t1) {
-                game.stopTimers();
-                switch (game.getResult()) {
-                    case DRAW:
-                        resultText.setText("Draw!");
-                        break;
-                    case WHITE_WIN:
-                        resultText.setText("White won!");
-                        break;
-                    case BLACK_WIN:
-                        resultText.setText("Black won!");
-                        break;
-                    default:
-                        message.setText("");
-                }
-                game.appendState();
-                boardController.removeListeners();
-                enterViewMode();
-            }
+            handleResult(t1);
         };
 
         currentPlayerListener = (observableValue, player, t1) -> {
@@ -384,13 +363,52 @@ public class GameScene extends Scene {
     private void enterViewMode() {
         viewMode = true;
         resignButton.setDisable(true);
+        startButton.setDisable(true);
         backButton.setDisable(false);
         forwardButton.setDisable(false);
         historyPosition = game.getHistory().size()-1;
+        removeListeners();
+    }
+
+    private void handleResult(boolean gameOver) {
+        switch (game.getResult()) {
+            case DRAW:
+                resultText.setText("Draw!");
+                break;
+            case WHITE_WIN:
+                resultText.setText("White won!");
+                break;
+            case BLACK_WIN:
+                resultText.setText("Black won!");
+                break;
+            default:
+                message.setText("");
+        }
+        if (gameOver) {
+            game.stopTimers();
+            game.appendState();
+            boardController.removeListeners();
+            enterViewMode();
+        }
     }
 
     private void displayState(GameState state) {
         boardController.updateBoard(state.getBoard());
+    }
+
+    private void updateTakenPanel(Piece p) {
+        if (p.getColor() == PColor.BLACK) {
+            ImageView container = new ImageView(PIECE_MAP.get(p.getClass()).get(p.getColor()));
+            container.fitHeightProperty().bind(sidePanel.heightProperty().divide(20));
+            container.fitWidthProperty().bind(sidePanel.heightProperty().divide(20));
+            taken1.getChildren().add(container);
+        }
+        else { // WHITE
+            ImageView container = new ImageView(PIECE_MAP.get(p.getClass()).get(p.getColor()));
+            container.fitHeightProperty().bind(sidePanel.heightProperty().divide(20));
+            container.fitWidthProperty().bind(sidePanel.heightProperty().divide(20));
+            taken2.getChildren().add(container);
+        }
     }
 
     private void addListeners() {
@@ -407,6 +425,8 @@ public class GameScene extends Scene {
         game.getGameOver().removeListener(gameOverListener);
         game.getTaken().removeListener(takenPiecesListener);
         game.getCurrent().removeListener(currentPlayerListener);
+        if (timeListener1 != null) timeListener1.remove();
+        if (timeListener2 != null) timeListener2.remove();
     }
 
 }

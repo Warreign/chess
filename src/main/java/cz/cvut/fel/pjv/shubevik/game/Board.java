@@ -69,6 +69,14 @@ public class Board {
 
     public void setPiece(int x, int y, Piece piece) { grid[x][y].setPiece(piece); }
 
+    public void setPiece(String notation, Piece piece) {
+        getTile(notation).setPiece(piece);
+    }
+
+    public Tile[][] getGrid() {
+        return grid;
+    }
+
     public Board getCopy() {
         Board b = new Board(true);
         for (int x = 0; x < 8; ++x) {

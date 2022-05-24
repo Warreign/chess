@@ -123,7 +123,7 @@ public class MenuScene extends Scene {
                 time != 0 ? new Timer(time) : null,
                 aiP2.isSelected() ? PlayerType.RANDOM : PlayerType.HUMAN);
 
-        Game game = new Game(p1, p2, false);
+        Game game = new Game(p1, p2, null);
         controller.startGame(game);
         settingsStage.close();
     };

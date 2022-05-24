@@ -42,7 +42,7 @@ public class Timer {
                         if (System.currentTimeMillis() - currentStartTime >= 1000) {
                             time--;
                             currentStartTime += 1000;
-                            updateMessage(TimeListener.convert(time));
+                            updateMessage(String.valueOf(time));
                             if (time == 0) {
                                 stop();
                             }
@@ -65,5 +65,9 @@ public class Timer {
 
     public long getTime() {
         return time;
+    }
+
+    public void setTime(long time) {
+        this.time = time;
     }
 }

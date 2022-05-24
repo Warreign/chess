@@ -66,7 +66,7 @@ public class BoardController {
 
         if (source.isPresent() &&
                 (controller.isFreeEdit() ||
-                        (game.hasStarted() &&
+                        (game.isStart() &&
                          game.getCurrentColor() ==  tileMap.get(source).getPieceColor()))) {
             Dragboard db = source.startDragAndDrop(TransferMode.ANY);
             ClipboardContent content = new ClipboardContent();

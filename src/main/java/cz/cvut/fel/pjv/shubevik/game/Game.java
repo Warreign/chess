@@ -1,5 +1,6 @@
 package cz.cvut.fel.pjv.shubevik.game;
 
+import cz.cvut.fel.pjv.shubevik.GUI.Timer;
 import cz.cvut.fel.pjv.shubevik.PGN.GameState;
 import cz.cvut.fel.pjv.shubevik.game.moves.Move;
 import cz.cvut.fel.pjv.shubevik.game.moves.MoveType;
@@ -14,7 +15,11 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
-import java.util.*;
+import java.util.Map;
+import java.util.List;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.*;
 
@@ -26,21 +31,17 @@ public class Game {
     private Map<PColor, Player> players;
     private ObjectProperty<Player> currentPlayer;
     private Result result;
-    private boolean started;
     private ObservableList<Piece> takenPieces;
     private ObservableList<GameState> history;
     private Move lastMove;
 
+    private boolean start;
+
     private int fullMoves;
-    private int halfMoves;
     private BooleanProperty gameOver;
     private ObjectProperty<SpecialMove> specialMove;
 
-    private boolean reconstructing;
-
-    private int counter;
-
-    public Game(Player p1, Player p2, boolean reconstructing) {
+    public Game(Player p1, Player p2, Board board) {
         takenPieces = FXCollections.observableList(new ArrayList<>());
         history = FXCollections.observableList(new ArrayList<>());
 
@@ -48,14 +49,13 @@ public class Game {
         players.put(p1.getColor(), p1);
         players.put(p2.getColor(), p2);
 
+        this.board = board == null ? new Board(false) : board;
         result = Result.IN_PROCESS;
-        board = new Board(false);
-        started = false;
+        start = false;
         lastMove = null;
         currentPlayer = new SimpleObjectProperty<>();
 
         fullMoves = 0;
-        halfMoves = 0;
 
         gameOver = new SimpleBooleanProperty(false);
         specialMove = new SimpleObjectProperty<>();
@@ -70,12 +70,13 @@ public class Game {
     }
 
     public void begin() {
-        if (!started) {
+        if (history.size() == 0) {
             history.add(new GameState(board.getCopy(), new ArrayList<>(), null, false, false));
             initialEvaluate();
             currentPlayer.set(players.get(PColor.WHITE));
-            started = true;
-            getCurrentPlayer().startTimer();
+        }
+        if (start) {
+            startCurrentTimer();
             if (getCurrentPlayer().getType() == PlayerType.RANDOM) randomMoveCurrent();
         }
     }
@@ -84,12 +85,11 @@ public class Game {
         if (isMoveValid(move)) {
             lastMove = move;
             makeMove(move);
-//            logger.log(Level.INFO, "Valid move");
-//            logger.log(Level.INFO, getCurrentColor() + board.toString());
+            logger.log(Level.INFO, "Valid move for " + getCurrentColor() + " " + move);
             evaluateAndSwitch();
             return true;
         }
-//        System.out.println("Wrong move");
+        logger.log(Level.INFO, "Invalid move for " + getCurrentColor() + " " + move);
         return false;
     }
 
@@ -125,6 +125,7 @@ public class Game {
             move.setType(MoveType.NORMAL);
             specialMove.set(SpecialMove.NONE);
         }
+        moveIncrement(move);
     }
     public List<Tile> findPotentialMoves(PColor color) {
         List<Tile> potentialMoves = new ArrayList<>();
@@ -261,7 +262,6 @@ public class Game {
                     new Move(getTile(7,0), getTile(7,3));
             movePieces(m, false);
         }
-        halfMoves++;
     }
 
     private void doEnPassant(Move move) {
@@ -337,7 +337,7 @@ public class Game {
 
     public void evaluateAndSwitch() {
         evaluateForColor(getCurrentColor());
-        if (getSpecialMove().get() != SpecialMove.PROMOTION && getResult() == Result.IN_PROCESS) {
+        if (specialMove.get() != SpecialMove.PROMOTION && result == Result.IN_PROCESS) {
             switchPlayers();
         }
     }
@@ -360,11 +360,7 @@ public class Game {
 
     private void moveIncrement(Move move) {
         if (move.getPiece() instanceof Pawn || move.isEndOccupied()) {
-            halfMoves = 0;
             fullMoves = 0;
-        }
-        else {
-            halfMoves++;
         }
         if (move.getColor() == PColor.BLACK) fullMoves++;
     }
@@ -372,9 +368,9 @@ public class Game {
     private void switchPlayers() {
         appendState();
         if (!gameOver.get()) {
-            currentPlayer.get().stopTimer();
+            stopCurrentTimer();
             currentPlayer.set(getCurrentColor() == PColor.WHITE ? players.get(PColor.BLACK) : players.get(PColor.WHITE));
-            if (!gameOver.get()) currentPlayer.get().startTimer();
+            if (!gameOver.get()) startCurrentTimer();
         }
     }
 
@@ -390,8 +386,8 @@ public class Game {
     }
 
     public void stopTimers() {
-        players.get(PColor.WHITE).stopTimer();
-        players.get(PColor.BLACK).stopTimer();
+        stopTimer1();
+        stopTimer2();
     }
 
     public void appendState() {
@@ -415,6 +411,7 @@ public class Game {
     public void endGameWithResult(Result result) {
         this.result = result;
         gameOver.set(result != Result.IN_PROCESS);
+        stopTimers();
     }
 
     public Board getBoard() {
@@ -477,8 +474,36 @@ public class Game {
         return currentPlayer.get().getColor();
     }
 
-    public boolean hasStarted() {
-        return started;
+    public boolean isStart() {
+        return start;
+    }
+
+    public void setStart(boolean r) {
+        start = r;
+    }
+
+    public Timer getTimer1() {
+        return players.get(PColor.WHITE).getTimer();
+    }
+
+    public Timer getTimer2() {
+        return players.get(PColor.BLACK).getTimer();
+    }
+
+    public void stopTimer1() {
+        players.get(PColor.WHITE).stopTimer();
+    }
+
+    public void stopTimer2() {
+        players.get(PColor.BLACK).stopTimer();
+    }
+
+    public void stopCurrentTimer() {
+        getCurrentPlayer().stopTimer();
+    }
+
+    public void startCurrentTimer() {
+        getCurrentPlayer().startTimer();
     }
 }
 

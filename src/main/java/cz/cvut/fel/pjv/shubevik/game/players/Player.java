@@ -7,7 +7,7 @@ public class Player {
 
     private final PColor pieceColor;
     private final String name;
-    private final Timer timer;
+    private Timer timer;
     private final PlayerType type;
 
     public Player(String name, PColor color, Timer timer, PlayerType type) {
@@ -25,6 +25,10 @@ public class Player {
         if (timer != null) timer.stop();
     }
 
+    public boolean isTimed() {
+        return timer != null;
+    }
+
     public PColor getColor() {
         return pieceColor;
     }
@@ -35,6 +39,10 @@ public class Player {
 
     public Timer getTimer() {
         return timer;
+    }
+
+    public void setTimer(Timer timer) {
+        this.timer = timer;
     }
 
     public PlayerType getType() {
