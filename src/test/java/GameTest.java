@@ -1,7 +1,6 @@
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.sun.source.tree.WhileLoopTree;
 import cz.cvut.fel.pjv.shubevik.game.moves.Move;
 import cz.cvut.fel.pjv.shubevik.game.pieces.Queen;
 import cz.cvut.fel.pjv.shubevik.game.players.Player;

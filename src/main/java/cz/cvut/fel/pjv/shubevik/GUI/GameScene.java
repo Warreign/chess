@@ -17,7 +17,6 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -89,8 +88,10 @@ public class GameScene extends Scene {
     private Button menuButton;
 
     private int historyPosition;
-    private Button backButton;
-    private Button forwardButton;
+    private Button backOne;
+    private Button forwardOne;
+    private Button backAll;
+    private Button forwardAll;
     private Button toPgnButton;
 
     public GameScene(GuiController controller) {
@@ -204,10 +205,17 @@ public class GameScene extends Scene {
             sidePanel.setPadding(new Insets(t1.doubleValue() / 40));
         });
 
+        backAll = new Button("<<");
+        backAll.setDisable(true);
+        backAll.setOnAction(e -> {
+            message.setText("First Move");
+            historyPosition = 0;
+            displayState(game.getHistory().get(historyPosition));
+        });
         // Browse moves backwards
-        backButton = new Button("<-");
-        backButton.setDisable(true);
-        backButton.setOnAction(e -> {
+        backOne = new Button("<-");
+        backOne.setDisable(true);
+        backOne.setOnAction(e -> {
             if (historyPosition - 1 < 0) message.setText("First move");
             else {
                 historyPosition--;
@@ -215,7 +223,6 @@ public class GameScene extends Scene {
             }
             displayState(game.getHistory().get(historyPosition));
         });
-
         // Open window with current game PGN
         toPgnButton = new Button("To PGN");
         toPgnButton.setDisable(true);
@@ -223,11 +230,10 @@ public class GameScene extends Scene {
             pgnText.setText(PGNBuilder.gameToPGN(game));
             pgnStage.show();
         });
-
         // Browse moves forwards
-        forwardButton = new Button("->");
-        forwardButton.setDisable(true);
-        forwardButton.setOnAction(e -> {
+        forwardOne = new Button("->");
+        forwardOne.setDisable(true);
+        forwardOne.setOnAction(e -> {
             if (historyPosition + 1 == game.getHistory().size()) message.setText("Last move");
             else {
                 historyPosition++;
@@ -235,7 +241,15 @@ public class GameScene extends Scene {
             }
             displayState(game.getHistory().get(historyPosition));
         });
-        HBox buttonsRow1 = new HBox(10, backButton, toPgnButton, forwardButton);
+        forwardAll = new Button(">>");
+        forwardAll.setDisable(true);
+        forwardAll.setOnAction(e -> {
+            message.setText("Last move");
+            historyPosition = game.getHistory().size()-1;
+            displayState(game.getHistory().get(historyPosition));
+        });
+
+        HBox buttonsRow1 = new HBox(10, backAll, backOne, toPgnButton, forwardOne, forwardAll);
         buttonsRow1.setAlignment(Pos.CENTER);
 
         startButton = new Button("Start");
@@ -267,10 +281,10 @@ public class GameScene extends Scene {
             controller.openMenu();
         });
 
-        HBox buttonsRow2 = new HBox(10, startButton, resignButton, menuButton);
+        HBox buttonsRow2 = new HBox(10, startButton, menuButton, resignButton);
         buttonsRow2.setAlignment(Pos.CENTER);
 
-        VBox middlePanel = new VBox(10, resultText,message, buttonsRow1, buttonsRow2);
+        VBox middlePanel = new VBox(10, resultText,message, buttonsRow2, buttonsRow1);
         middlePanel.setAlignment(Pos.CENTER);
 
         sidePanel.setCenter(middlePanel);
@@ -464,8 +478,10 @@ public class GameScene extends Scene {
     private void enterViewMode() {
         resignButton.setDisable(true);
         startButton.setDisable(true);
-        backButton.setDisable(false);
-        forwardButton.setDisable(false);
+        backOne.setDisable(false);
+        backAll.setDisable(false);
+        forwardOne.setDisable(false);
+        forwardAll.setDisable(false);
         historyPosition = game.getHistory().size()-1;
         removeListeners();
     }

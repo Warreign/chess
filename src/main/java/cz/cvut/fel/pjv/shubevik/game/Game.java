@@ -56,7 +56,7 @@ public class Game {
         lastMove = null;
         currentPlayer = new SimpleObjectProperty<>();
         currentPlayer.set(players.get(PColor.WHITE));
-        history.add(new GameState(this.board.getCopy(), new ArrayList<>(), null, false, false));
+        appendInitialState();
 
         fullMoves = 0;
         this.reconstruct = reconstruct;
@@ -82,10 +82,12 @@ public class Game {
      */
     public void begin() {
         if (history.size() == 1) {
+            history.remove(0);
+            history.add(new GameState(this.board.getCopy(), new ArrayList<>(), null, false, false));
             initialEvaluate();
         }
         if (start) {
-            logger.info(String.format("Game began %s against %s began", players.get(PColor.WHITE), players.get(PColor.BLACK)));
+            logger.info(String.format("Game began %s against %s began", players.get(PColor.WHITE).getName(), players.get(PColor.BLACK).getName()));
             startCurrentTimer();
             if (getCurrentPlayer().getType() == PlayerType.RANDOM) randomMoveCurrent();
         }
@@ -102,8 +104,8 @@ public class Game {
     */
     public boolean takeMove(Move move) {
         if (isMoveValid(move)) {
-            lastMove = move;
             makeMove(move);
+            lastMove = move;
             if (!reconstruct) logger.log(Level.INFO, "Valid move for " + getCurrentColor() + " " + move);
             evaluateAndSwitch();
             return true;
@@ -144,6 +146,7 @@ public class Game {
         else if (move.getPiece() instanceof Pawn &&
                 ((move.getColor() == PColor.WHITE && move.getEnd().x == 7) ||
                         (move.getColor() == PColor.BLACK && move.getEnd().x == 0))) {
+            lastMove = move;
             specialMove.set(SpecialMove.PROMOTION);
         }
         else {
@@ -341,11 +344,11 @@ public class Game {
     }
 
     private void doEnPassant(Move move) {
-        if (move.getColor() == PColor.WHITE) {
-            Tile enemyTile = getTile(move.getEnd().x-1, move.getEnd().y);
-            takenPieces.add(enemyTile.getPiece());
-            enemyTile.setPiece(null);
-        }
+        int off = move.getColor() == PColor.WHITE ? -1 : 1;
+        Tile enemyTile = getTile(move.getEnd().x+off, move.getEnd().y);
+        move.setCapture(enemyTile.getPiece());
+        takenPieces.add(enemyTile.getPiece());
+        enemyTile.setPiece(null);
     }
 
     /*
@@ -508,6 +511,10 @@ public class Game {
                     checkOpponent(getCurrentColor()),
                     isCheckmateOpponent(getCurrentColor())));
         }
+    }
+
+    public void appendInitialState() {
+        history.add(new GameState(this.board.getCopy(), new ArrayList<>(), null, false, false));
     }
 
     private List<Piece> copyTakenPieces() {

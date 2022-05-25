@@ -96,11 +96,13 @@ public class GuiController extends Application {
         this.stage = stage;
         menuScene = new MenuScene(this,900, 600);
 
+
+
         stage.setTitle("Chess");
         stage.getIcons().add(GAME_ICON);
-        stage.setMaxHeight(Screen.getPrimary().getBounds().getHeight() * 0.97);
-        stage.minWidthProperty().bind(stage.heightProperty().multiply(1.5));
-//        stage.maxWidthProperty().bind(stage.heightProperty().multiply(16).divide(9));
+        stage.setMaxHeight(Screen.getPrimary().getBounds().getHeight());
+        stage.minWidthProperty().bind(stage.heightProperty().multiply(1.66));
+        stage.maxWidthProperty().bind(stage.heightProperty().multiply(2.1));
         stage.setMinHeight(600);
         stage.show();
 
@@ -114,6 +116,7 @@ public class GuiController extends Application {
 
     public void openMenu() {
         if (!(stage.getScene() instanceof MenuScene)) {
+            stage.setHeight(stage.getHeight()+0.1);
             freeEdit = true;
             stage.setScene(menuScene);
             gameScene = null;

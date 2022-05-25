@@ -10,7 +10,6 @@ import cz.cvut.fel.pjv.shubevik.game.players.PlayerType;
 import java.lang.reflect.InvocationTargetException;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
@@ -79,8 +78,6 @@ public class PGNBuilder {
                 result = "*";
                 break;
         }
-
-
 
         // Add tags
         s.append(String.format("[Date \"%s\"]\n", LocalDate.now()))
@@ -152,8 +149,7 @@ public class PGNBuilder {
 
     public static Game PGNtoGame(String pgn) {
         // Tags
-        Matcher m = Pattern.compile("\\[.*]\n").matcher(pgn);
-        List<String> tags = m.results().map(MatchResult::group).collect(Collectors.toList());
+        List<String> tags = Pattern.compile("\\[.*]\n").matcher(pgn).results().map(MatchResult::group).collect(Collectors.toList());
         if (tags.size() < 3) return null;
 
         String name1 = null;
@@ -169,7 +165,7 @@ public class PGNBuilder {
             pgn = pgn.replaceAll(String.format("\\%s\\]\n",tag.replaceAll("[]\n]", "").replaceAll("\\*", "\\\\*")), "");
             tag = tag.replaceAll("[\\[\\]\n]", "");
             String type = tag.split(" ")[0];
-            String val = tag.split(" ")[1].replaceAll("\"", "");
+            String val = Pattern.compile("\".*\"").matcher(tag).results().map(MatchResult::group).collect(Collectors.toList()).get(0).replaceAll("\"","");
             switch (type) {
                 case "White":
                     name1 = val;
