@@ -17,6 +17,7 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Insets;
 import javafx.geometry.Orientation;
@@ -30,12 +31,10 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.stage.DirectoryChooser;
-import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
@@ -57,6 +56,7 @@ public class GameScene extends Scene {
     private ListChangeListener<Piece> takenPiecesListener;
     private ChangeListener<SpecialMove> specialMoveListener;
     private ChangeListener<Boolean> gameOverListener;
+    private ListChangeListener<GameState> moveListener;
     private ChangeListener<Player> currentPlayerListener;
 
     private Stage promStage;
@@ -306,6 +306,12 @@ public class GameScene extends Scene {
             handleResult(t1);
         };
 
+        moveListener = change -> {
+            if (change.next() && change.wasAdded()) {
+                boardController.updateBoard(null);
+            }
+        };
+
         currentPlayerListener = (observableValue, player, t1) -> {
             if (t1.getType() == PlayerType.RANDOM) {
                 game.randomMoveCurrent();
@@ -511,6 +517,7 @@ public class GameScene extends Scene {
         game.getGameOver().addListener(gameOverListener);
         game.getTaken().addListener(takenPiecesListener);
         game.getCurrent().addListener(currentPlayerListener);
+        game.getHistory().addListener(moveListener);
     }
 
     private void removeListeners() {
@@ -519,6 +526,7 @@ public class GameScene extends Scene {
         game.getGameOver().removeListener(gameOverListener);
         game.getTaken().removeListener(takenPiecesListener);
         game.getCurrent().removeListener(currentPlayerListener);
+        game.getHistory().removeListener(moveListener);
         if (timeListener1 != null) timeListener1.remove();
         if (timeListener2 != null) timeListener2.remove();
     }

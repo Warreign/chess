@@ -20,7 +20,7 @@ public class Board {
         if ((y == 1 || y == 6) && x == 0) return new Knight(PColor.WHITE);
         if ((y == 0 || y == 7) && x == 0) return new Rook(PColor.WHITE);
         if (x == 1) return new Pawn(PColor.WHITE);
-//
+
         if (y == 4 && x == 7) return new King(PColor.BLACK);
         if (y == 3 && x == 7) return new Queen(PColor.BLACK);
         if ((y == 2 || y == 5) && x == 7) return new Bishop(PColor.BLACK);
@@ -28,10 +28,6 @@ public class Board {
         if ((y == 0 || y == 7) && x == 7) return new Rook(PColor.BLACK);
         if (x == 6) return new Pawn(PColor.BLACK);
         if (x == 1 && y == 0) return new Pawn(PColor.BLACK);
-
-//        if ( (x == 3 || x == 5) && y == 3) return new Knight(PColor.WHITE);
-
-
 
         return null;
     }

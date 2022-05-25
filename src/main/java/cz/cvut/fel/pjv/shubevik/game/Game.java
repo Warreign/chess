@@ -55,6 +55,8 @@ public class Game {
         start = false;
         lastMove = null;
         currentPlayer = new SimpleObjectProperty<>();
+        currentPlayer.set(players.get(PColor.WHITE));
+        history.add(new GameState(this.board.getCopy(), new ArrayList<>(), null, false, false));
 
         fullMoves = 0;
         this.reconstruct = reconstruct;
@@ -67,22 +69,37 @@ public class Game {
         this.board = board;
     }
 
+    /*
+    * Return opposite color
+    */
     public static PColor opposite(PColor color) {
         return color == PColor.WHITE ? PColor.BLACK : PColor.WHITE;
     }
 
+    /*
+     *  Begin the game.
+     *  If the game is in initial position, evaluate
+     */
     public void begin() {
-        if (history.size() == 0) {
-            history.add(new GameState(board.getCopy(), new ArrayList<>(), null, false, false));
+        if (history.size() == 1) {
             initialEvaluate();
-            currentPlayer.set(players.get(PColor.WHITE));
         }
         if (start) {
+            logger.info(String.format("Game began %s against %s began", players.get(PColor.WHITE), players.get(PColor.BLACK)));
             startCurrentTimer();
             if (getCurrentPlayer().getType() == PlayerType.RANDOM) randomMoveCurrent();
         }
     }
 
+    /*
+    * Evaluate and apply the move
+    *
+    * Evaluate move, on true apply to board,
+    * evaluate position and switch players
+    *
+    * @param move
+    * @return true, if is valid
+    */
     public boolean takeMove(Move move) {
         if (isMoveValid(move)) {
             lastMove = move;
@@ -95,6 +112,12 @@ public class Game {
         return false;
     }
 
+    /* Apply move
+    *
+    *  Apply move to board, set move types
+    *
+    * @param move
+    */
     private void makeMove(Move move) {
         movePieces(move, false);
         if (move.isEndOccupied()) {
@@ -129,6 +152,14 @@ public class Game {
         }
         moveIncrement(move);
     }
+
+    /*
+    * Find all possible tiles, where player of color "color"
+    * can move (e.g. tiles all tiles without pieces or with pieces of opposite color)
+    *
+    * @param color
+    * @return List of all such tiles
+     */
     public List<Tile> findPotentialMoves(PColor color) {
         List<Tile> potentialMoves = new ArrayList<>();
         for (int x = 0; x < 8; ++x) {
@@ -141,6 +172,13 @@ public class Game {
         }
         return potentialMoves;
     }
+
+    /*
+    * Find all valid moves for piece on tile
+    *
+    * @param tile, to search for
+    * @return list of valid moves, empty, if there are none
+     */
     public List<Move> findMovesPiece(Tile tile) {
         List<Move> possibleMoves = new ArrayList<>();
         if (!tile.isOccupied()) return possibleMoves;
@@ -158,6 +196,12 @@ public class Game {
         return possibleMoves;
     }
 
+    /*
+    * True if player of color opposite to "color" has valid moves,
+    * false otherwise
+    *
+    * @param color
+     */
     public boolean canMoveOpponent(PColor color) {
         for (Tile t : findPiecesColor(opposite(color))) {
             if (!findMovesPiece(t).isEmpty()) {
@@ -167,6 +211,11 @@ public class Game {
         return false;
     }
 
+    /*
+    * Check if move is not obstructed by piece
+    *
+    * @param move to check
+     */
     public boolean pathClear(Move move) {
         if (move.getPiece() instanceof Pawn || move.getPiece() instanceof Knight) {
             return true;
@@ -188,6 +237,12 @@ public class Game {
         return true;
     }
 
+    /*
+     * Return true, if enemy has at least one valid move
+     * with final position on tile "tile"
+     *
+     * @param tile to check
+     */
     public boolean tileUnderAttack(Tile tile) {
         Move m = new Move(null, tile);
         PColor attacker = opposite(tile.getPieceColor());
@@ -201,6 +256,11 @@ public class Game {
         return false;
     }
 
+    /*
+     * True if player is in check after move
+     *
+     * @param move
+     */
     public boolean checkAfterMove(Move move) {
         Piece taken = move.getEnd().getPiece();
         move.getStart().setPiece(null);
@@ -212,11 +272,19 @@ public class Game {
         return check;
     }
 
+    /*
+     * True if player of opposite color is in check
+     */
     public boolean checkOpponent(PColor color) {
         PColor opponent = opposite(color);
         return tileUnderAttack(findKings().get(opponent));
     }
 
+    /*
+     * Search board for kings
+     *
+     * @return map of color to the tile with corresponding king
+     */
     public Map<PColor, Tile> findKings() {
         Map<PColor, Tile> kings = new HashMap<>();
         for (int x = 0; x < 8; ++x) {
@@ -230,6 +298,12 @@ public class Game {
         return kings;
     }
 
+    /*
+     * Find all tiles that contain piece of color "color"
+     *
+     * @param color
+     * @return list of all such tiles
+     */
     public List<Tile> findPiecesColor(PColor color) {
         List<Tile> pieces = new ArrayList<>();
         for (int x = 0; x < 8; ++x) {
@@ -274,6 +348,11 @@ public class Game {
         }
     }
 
+    /*
+     * Set promotion piece
+     *
+     * @param piece to set
+     */
     public void setPromPiece(Piece piece) {
         getSpecialMove().set(SpecialMove.NONE);
         getLastMove().setPromoting(piece.getClass());
@@ -330,13 +409,19 @@ public class Game {
         gameOver.set(ended);
     }
 
-    public void initialEvaluate() {
+
+    private void initialEvaluate() {
         evaluateForColor(PColor.WHITE);
         if (!gameOver.get()) {
             evaluateForColor(PColor.BLACK);
         }
     }
 
+    /*
+     * Evaluate position on board,
+     * if not terminated state,
+     * switch players
+     */
     public void evaluateAndSwitch() {
         evaluateForColor(getCurrentColor());
         if (specialMove.get() != SpecialMove.PROMOTION && result == Result.IN_PROCESS) {
@@ -344,10 +429,22 @@ public class Game {
         }
     }
 
+    /*
+     * Check for impossible starting position
+     * (e.g. opponent is in check and it is not his turn)
+     */
     public boolean impossiblePosition() {
         return checkOpponent(PColor.WHITE);
     }
 
+    /*
+     * Move pieces from starting position to final position
+     * according to move, if swap, don't remove piece at final position,
+     * instead move it to start position
+     *
+     * @param move
+     * @param swap
+     */
     public void movePieces(Move move, boolean swap) {
         move.getPiece().setWasMoved(true);
         if (swap) {
@@ -376,6 +473,9 @@ public class Game {
         }
     }
 
+    /*
+     * Perform random move for current player
+     */
     public void randomMoveCurrent() {
         // Find all pieces of current player
         List<Tile> pieces = findPiecesColor(getCurrentColor());
@@ -387,11 +487,17 @@ public class Game {
         takeMove(moves.get(ThreadLocalRandom.current().nextInt(moves.size())));
     }
 
+    /*
+     * Stop timers for both players
+     */
     public void stopTimers() {
         stopTimer1();
         stopTimer2();
     }
 
+    /*
+     * Add current game state to history
+     */
     public void appendState() {
         if (getLastState().getMove() == null ||
                 (!getLastState().getMove().equals(getLastMove()))) {
@@ -410,6 +516,10 @@ public class Game {
         return taken;
     }
 
+    /*
+     * End game end set custom result, stop timers
+     * @param result to set
+     */
     public void endGameWithResult(Result result) {
         logger.info("Game ended, " + result.toString().replaceAll("_", " ").toLowerCase());
         this.result = result;
